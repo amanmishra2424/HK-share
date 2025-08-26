@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Terms and Conditions - PDF Printing System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-info text-white text-center">
+                        <h2><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h2>
+                    </div>
+                    <div class="card-body p-5">
+                        <div class="terms-content">
+                            <h4>1. Acceptance of Terms</h4>
+                            <p>By accessing and using the PDF Printing System, you accept and agree to be bound by the terms and provision of this agreement.</p>
+                            
+                            <h4>2. User Registration</h4>
+                            <p>To use our services, you must:</p>
+                            <ul>
+                                <li>Provide accurate and complete registration information</li>
+                                <li>Verify your email address</li>
+                                <li>Maintain the security of your account credentials</li>
+                                <li>Be a current student of the institution</li>
+                            </ul>
+                            
+                            <h4>3. File Upload Guidelines</h4>
+                            <p>When uploading files, you agree to:</p>
+                            <ul>
+                                <li>Upload only PDF files</li>
+                                <li>Ensure files do not contain inappropriate or copyrighted content</li>
+                                <li>Respect file size limitations (maximum 10MB per file)</li>
+                                <li>Use the service for educational purposes only</li>
+                            </ul>
+                            
+                            <h4>4. Privacy and Data Protection</h4>
+                            <p>We are committed to protecting your privacy:</p>
+                            <ul>
+                                <li>Personal information is collected only for service provision</li>
+                                <li>Files are stored securely and deleted after processing</li>
+                                <li>We do not share your data with third parties</li>
+                                <li>You can request deletion of your account and data</li>
+                            </ul>
+                            
+                            <h4>5. Service Availability</h4>
+                            <p>While we strive to maintain continuous service:</p>
+                            <ul>
+                                <li>Service may be temporarily unavailable for maintenance</li>
+                                <li>We are not liable for service interruptions</li>
+                                <li>Processing times may vary based on queue size</li>
+                            </ul>
+                            
+                            <h4>6. Prohibited Activities</h4>
+                            <p>Users must not:</p>
+                            <ul>
+                                <li>Upload malicious or harmful content</li>
+                                <li>Attempt to breach system security</li>
+                                <li>Share account credentials with others</li>
+                                <li>Use the service for commercial purposes</li>
+                            </ul>
+                            
+                            <h4>7. Limitation of Liability</h4>
+                            <p>The PDF Printing System is provided "as is" without warranties. We are not liable for any damages arising from the use of our service.</p>
+                            
+                            <h4>8. Changes to Terms</h4>
+                            <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes via email.</p>
+                            
+                            <h4>9. Contact Information</h4>
+                            <p>For questions about these terms, please contact us at support@pdfprinting.com</p>
+                            
+                            <div class="text-muted mt-4">
+                                <small>Last updated: December 2024</small>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <a href="/login" class="btn btn-info">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

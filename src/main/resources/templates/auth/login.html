@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Login - PDF Printing System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+        }
+        .btn-outline-primary {
+            border: 2px solid #3498db;
+            color: #3498db;
+            border-radius: 25px;
+            padding: 10px 25px;
+        }
+        .btn-admin {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 10px 25px;
+        }
+        .btn-admin:hover {
+            background: linear-gradient(135deg, #c0392b, #a93226);
+            color: white;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+        }
+        .form-control:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="login-card">
+                    <div class="login-header">
+                        <h2 class="mb-0">
+                            <i class="fas fa-print me-2"></i>
+                            PDF Printing System
+                        </h2>
+                        <p class="mb-0 mt-2">Welcome back! Please sign in to your account</p>
+                    </div>
+                    
+                    <div class="p-4">
+                        <!-- Alert Messages -->
+                        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span th:text="${message}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+
+                        <!-- Login Form -->
+                        <form method="post" action="/login">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-envelope me-1"></i>Email Address
+                                </label>
+                                <input type="email" class="form-control" id="username" name="username" required>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-1"></i>Password
+                                </label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Action Links -->
+                        <div class="text-center">
+                            <p class="mb-3">Don't have an account?</p>
+                            <a href="/register" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-user-plus me-1"></i>Student Registration
+                            </a>
+                            <a href="/verify" class="btn btn-outline-secondary">
+                                <i class="fas fa-envelope-open-text me-1"></i>Verify Email
+                            </a>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Added admin login section -->
+                        <div class="text-center mb-3">
+                            <p class="text-muted mb-2">Administrator Access</p>
+                            <button class="btn btn-admin" onclick="showAdminHint()">
+                                <i class="fas fa-user-shield me-1"></i>Admin Login
+                            </button>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Footer Links -->
+                        <div class="text-center">
+                            <a href="/contact" class="text-muted me-3">
+                                <i class="fas fa-envelope me-1"></i>Contact Us
+                            </a>
+                            <a href="/terms" class="text-muted">
+                                <i class="fas fa-file-contract me-1"></i>Terms & Conditions
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showAdminHint() {
+            alert('Admin Login:\n\nUse the admin email and password configured in your environment variables:\n\n• ADMIN_EMAIL\n• ADMIN_PASSWORD\n\nEnter these credentials in the login form above.');
+        }
+    </script>
+</body>
+</html>

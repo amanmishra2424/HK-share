@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome - PDF Printing System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #27ae60;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .feature-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #27ae60;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎉 PDF Printing System</div>
+            <h1>Account Activated Successfully!</h1>
+        </div>
+        
+        <p>Dear <strong th:text="${user.name}">Student</strong>,</p>
+        
+        <p>Congratulations! Your email has been verified and your account is now active. You can start using the PDF Printing System right away.</p>
+        
+        <div style="text-align: center;">
+            <a th:href="${loginUrl}" class="btn">Login to Your Account</a>
+        </div>
+        
+        <h3>What you can do now:</h3>
+        
+        <div class="feature-box">
+            <h4>📤 Upload PDF Files</h4>
+            <p>Upload multiple PDF files for printing, organized by your batch.</p>
+        </div>
+        
+        <div class="feature-box">
+            <h4>📋 Manage Your Queue</h4>
+            <p>View all your uploaded files and remove them before processing if needed.</p>
+        </div>
+        
+        <div class="feature-box">
+            <h4>📊 Track Status</h4>
+            <p>Monitor the status of your submissions and know when they're processed.</p>
+        </div>
+        
+        <h3>Getting Started:</h3>
+        <ol>
+            <li>Login to your account using the button above</li>
+            <li>Go to your student dashboard</li>
+            <li>Upload your PDF files</li>
+            <li>Select your batch (default: <span th:text="${user.batch}">Batch 1</span>)</li>
+            <li>Wait for admin processing</li>
+        </ol>
+        
+        <p><strong>Important:</strong> Only PDF files are accepted, with a maximum size of 10MB per file.</p>
+        
+        <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+        
+        <div class="footer">
+            <p>Welcome to PDF Printing System!<br>
+            We're here to make your document printing experience seamless.</p>
+            <p>&copy; 2024 PDF Printing System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
