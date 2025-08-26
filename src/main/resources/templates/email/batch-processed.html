@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Processed - PDF Printing System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f39c12;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f39c12;
+            margin-bottom: 10px;
+        }
+        .stats-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .student-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">✅ PDF Printing System</div>
+            <h1>Batch Processing Complete</h1>
+        </div>
+        
+        <p>Dear Administrator,</p>
+        
+        <p>A batch has been successfully processed and merged. Here are the details:</p>
+        
+        <div class="stats-box">
+            <h3>📊 Processing Summary</h3>
+            <ul>
+                <li><strong>Batch Name:</strong> <span th:text="${batchName}">Batch 1</span></li>
+                <li><strong>Files Processed:</strong> <span th:text="${fileCount}">5</span> PDF files</li>
+                <li><strong>Processed At:</strong> <span th:text="${#temporals.format(processedAt, 'MMM dd, yyyy HH:mm:ss')}">Dec 15, 2024 14:30:00</span></li>
+            </ul>
+        </div>
+        
+        <div class="student-list">
+            <h4>👥 Students Involved:</h4>
+            <ul>
+                <li th:each="email : ${studentEmails}" th:text="${email}">student@email.com</li>
+            </ul>
+        </div>
+        
+        <h3>📋 Next Steps:</h3>
+        <ol>
+            <li>The merged PDF file is ready for download from the admin dashboard</li>
+            <li>All individual files have been marked as processed</li>
+            <li>The batch queue has been cleared</li>
+            <li>Students can upload new files for future processing</li>
+        </ol>
+        
+        <p><strong>Note:</strong> The merged PDF contains all files from the selected batch in the order they were uploaded.</p>
+        
+        <div class="footer">
+            <p>This is an automated notification from PDF Printing System<br>
+            Admin Dashboard: <a th:href="${baseUrl + '/admin/dashboard'}">Access Dashboard</a></p>
+            <p>&copy; 2024 PDF Printing System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

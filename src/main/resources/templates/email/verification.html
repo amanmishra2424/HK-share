@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification - PDF Printing System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .btn:hover {
+            background: linear-gradient(135deg, #2980b9, #21618c);
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📄 PDF Printing System</div>
+            <h1>Welcome to PDF Printing System!</h1>
+        </div>
+        
+        <p>Dear <strong th:text="${user.name}">Student</strong>,</p>
+        
+        <p>Thank you for registering with the PDF Printing System. To complete your registration and activate your account, please verify your email address by clicking the button below:</p>
+        
+        <div style="text-align: center;">
+            <a th:href="${verificationUrl}" class="btn">Verify Email Address</a>
+        </div>
+        
+        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; background: #f8f9fa; padding: 10px; border-radius: 5px;">
+            <a th:href="${verificationUrl}" th:text="${verificationUrl}">Verification Link</a>
+        </p>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This verification link will expire in 24 hours. If you don't verify your email within this time, you'll need to register again.
+        </div>
+        
+        <h3>Your Registration Details:</h3>
+        <ul>
+            <li><strong>Name:</strong> <span th:text="${user.name}">Student Name</span></li>
+            <li><strong>Email:</strong> <span th:text="${user.email}">student@email.com</span></li>
+            <li><strong>Branch:</strong> <span th:text="${user.branch}">Computer Science</span></li>
+            <li><strong>Roll Number:</strong> <span th:text="${user.rollNumber}">CS001</span></li>
+            <li><strong>Batch:</strong> <span th:text="${user.batch}">Batch 1</span></li>
+        </ul>
+        
+        <p>Once your email is verified, you'll be able to:</p>
+        <ul>
+            <li>Upload PDF files for printing</li>
+            <li>Manage your upload queue</li>
+            <li>Track your submission status</li>
+        </ul>
+        
+        <p>If you didn't create this account, please ignore this email.</p>
+        
+        <div class="footer">
+            <p>This email was sent by PDF Printing System<br>
+            If you have any questions, please contact our support team.</p>
+            <p>&copy; 2024 PDF Printing System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
