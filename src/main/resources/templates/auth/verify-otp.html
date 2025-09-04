@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Verify OTP - PDF Printing System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+        .otp-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .otp-header {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+        }
+        .form-control:focus {
+            border-color: #27ae60;
+            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="otp-card mt-5">
+                    <div class="otp-header">
+                        <h2 class="mb-0">
+                            <i class="fas fa-key me-2"></i>
+                            Email Verification
+                        </h2>
+                        <p class="mb-0 mt-2">Enter the OTP sent to your email to verify your account</p>
+                    </div>
+                    <div class="p-4">
+                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <span th:text="${error}"></span>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        <form method="post" action="/verify-otp">
+                            <input type="hidden" name="email" th:value="${email}" />
+                            <div class="mb-3">
+                                <label for="otp" class="form-label">OTP</label>
+                                <input type="text" class="form-control" id="otp" name="otp" maxlength="6" required autofocus>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Verify OTP</button>
+                        </form>
+                        <div class="mt-3 text-center">
+                            <small>Didn't receive the OTP? Please check your spam folder.</small>
+                        </div>
+                        <form method="post" action="/resend-otp" class="mt-3">
+                            <input type="hidden" name="email" th:value="${email}" />
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-outline-secondary">Resend OTP</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

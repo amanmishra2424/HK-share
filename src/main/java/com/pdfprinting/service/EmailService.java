@@ -1,3 +1,6 @@
+// ...existing code...
+
+// ...existing code...
 package com.pdfprinting.service;
 
 import com.pdfprinting.model.User;
@@ -264,6 +267,35 @@ public class EmailService {
         } catch (Exception e) {
             logger.error("Email configuration test failed: {}", e.getMessage());
             return false;
+        }
+    }
+
+    public void sendOtpEmail(User user) {
+        if (!isEmailConfigured()) {
+            logger.warn("Email not configured. Skipping OTP email for user: {}", user.getEmail());
+            return;
+        }
+
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                logger.info("Sending OTP email to {} (attempt {}/{})", user.getEmail(), attempt, MAX_RETRIES);
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setTo(user.getEmail());
+                message.setFrom(fromEmail);
+                message.setSubject("Your OTP for PDF Printing System Registration");
+                message.setText("Your OTP for registration is: " + user.getOtp() + "\nThis OTP is valid for 10 minutes.");
+                mailSender.send(message);
+                logger.info("OTP email sent to {}", user.getEmail());
+                return;
+            } catch (Exception e) {
+                lastException = e;
+                logger.error("Failed to send OTP email to {}: {}", user.getEmail(), e.getMessage());
+                try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ignored) {}
+            }
+        }
+        if (lastException != null) {
+            logger.error("Giving up on sending OTP email to {} after {} attempts", user.getEmail(), MAX_RETRIES);
         }
     }
 

@@ -2,19 +2,23 @@ package com.pdfprinting.controller;
 
 import com.pdfprinting.model.User;
 import com.pdfprinting.service.UserService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import com.pdfprinting.service.CustomUserDetailsService;
 
 @Controller
 public class AuthController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
 
     @GetMapping("/")
     public String home() {
@@ -36,80 +40,75 @@ public class AuthController {
     }
 
     @GetMapping("/register")
-    public String registerPage(Model model) {
+    public String showRegistrationForm(Model model) {
         model.addAttribute("user", new User());
-        model.addAttribute("title", "Register - PDF Printing System");
         return "auth/register";
     }
 
     @PostMapping("/register")
-    public String registerUser(@Valid @ModelAttribute("user") User user,
-                              BindingResult result,
-                              Model model,
-                              RedirectAttributes redirectAttributes) {
-        if (result.hasErrors()) {
-            model.addAttribute("title", "Register - PDF Printing System");
-            return "auth/register";
-        }
-
+    public String registerUser(@ModelAttribute("user") User user, Model model) {
         try {
             userService.registerUser(user);
-            redirectAttributes.addFlashAttribute("message", 
-                "Registration successful! Please check your email to verify your account.");
-            return "redirect:/login";
+            // Redirect to dedicated OTP page after registration
+            return "redirect:/verify-otp?email=" + user.getEmail();
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
-            model.addAttribute("title", "Register - PDF Printing System");
             return "auth/register";
         }
     }
 
-    @GetMapping("/verify-email")
-    public String verifyEmail(@RequestParam("token") String token,
-                             RedirectAttributes redirectAttributes) {
-        if (userService.verifyEmail(token)) {
-            redirectAttributes.addFlashAttribute("message", 
-                "Email verified successfully! You can now login.");
+    @GetMapping("/verify-otp")
+    public String showOtpPage(@RequestParam(value = "email", required = false) String email,
+                              @RequestParam(value = "message", required = false) String message,
+                              @RequestParam(value = "otpError", required = false) String otpError,
+                              Model model) {
+        if (email != null) model.addAttribute("email", email);
+        if (message != null) model.addAttribute("message", message);
+        if (otpError != null) model.addAttribute("error", otpError);
+        return "auth/verify-otp";
+    }
+
+    @PostMapping("/verify-otp")
+    public String verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp, Model model) {
+        boolean verified = userService.verifyOtp(email, otp == null ? "" : otp.trim());
+        if (verified) {
+            // Auto-login the user
+            try {
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (Exception ex) {
+                // ignore auth failure; user can still login manually
+            }
+            // Redirect to dashboard after successful verification and auto-login
+            return "redirect:/dashboard";
         } else {
-            redirectAttributes.addFlashAttribute("error", 
-                "Invalid or expired verification token.");
-        }
-        return "redirect:/login";
-    }
-
-    @GetMapping("/verify")
-    public String verifyPage(@RequestParam(value = "token", required = false) String token,
-                            Model model) {
-        model.addAttribute("title", "Verify Email - PDF Printing System");
-        if (token != null) {
-            model.addAttribute("token", token);
-        }
-        return "auth/verify";
-    }
-
-    @PostMapping("/verify")
-    public String processVerification(@RequestParam("token") String token,
-                                    RedirectAttributes redirectAttributes) {
-        if (userService.verifyEmail(token)) {
-            redirectAttributes.addFlashAttribute("message", 
-                "Email verified successfully! You can now login.");
-            return "redirect:/login";
-        } else {
-            redirectAttributes.addFlashAttribute("error", 
-                "Invalid or expired verification token.");
-            return "redirect:/verify";
+            model.addAttribute("email", email);
+            model.addAttribute("error", "Invalid or expired OTP. Please try again.");
+            return "auth/verify-otp";
         }
     }
 
-    @GetMapping("/contact")
-    public String contactPage(Model model) {
-        model.addAttribute("title", "Contact Us - PDF Printing System");
-        return "pages/contact";
+    @PostMapping("/resend-otp")
+    public String resendOtp(@RequestParam("email") String email, Model model) {
+        try {
+            userService.resendOtp(email);
+            model.addAttribute("email", email);
+            model.addAttribute("message", "OTP resent successfully");
+            return "auth/verify-otp";
+        } catch (Exception e) {
+            model.addAttribute("email", email);
+            model.addAttribute("error", e.getMessage());
+            return "auth/verify-otp";
+        }
     }
 
-    @GetMapping("/terms")
-    public String termsPage(Model model) {
-        model.addAttribute("title", "Terms and Conditions - PDF Printing System");
-        return "pages/terms";
+    // Temporary debug endpoint - remove in production
+    @GetMapping("/debug-user")
+    @ResponseBody
+    public String debugUser(@RequestParam("email") String email) {
+        return userService.findByEmail(email)
+                .map(u -> "email=" + u.getEmail() + ", otp=" + u.getOtp() + ", otpExpiry=" + u.getOtpExpiry() + ", verified=" + u.isEmailVerified())
+                .orElse("user not found");
     }
 }

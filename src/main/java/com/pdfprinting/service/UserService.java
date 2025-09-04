@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class UserService {
@@ -68,29 +67,39 @@ public class UserService {
         // Encode password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         
-        // Generate verification token
-        String token = UUID.randomUUID().toString();
-        user.setVerificationToken(token);
-        user.setTokenExpiry(LocalDateTime.now().plusHours(24));
-        user.setRole(User.Role.STUDENT);
+    // Generate OTP for email verification
+    String otp = String.valueOf(100000 + (int)(Math.random() * 900000)); // 6-digit OTP
+    user.setOtp(otp);
+    user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+    user.setRole(User.Role.STUDENT);
 
-        User savedUser = userRepository.save(user);
+    User savedUser = userRepository.save(user);
 
-        // Send verification email
-        emailService.sendVerificationEmail(savedUser);
+    // Send OTP email
+    emailService.sendOtpEmail(savedUser);
 
-        return savedUser;
+    return savedUser;
     }
 
-    public boolean verifyEmail(String token) {
-        Optional<User> userOpt = userRepository.findByVerificationToken(token);
+
+    public boolean verifyOtp(String email, String otp) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            if (user.getTokenExpiry().isAfter(LocalDateTime.now())) {
+            String entered = otp == null ? "" : otp.trim();
+            // Debug logging (temporary) - helps diagnose OTP issues
+            System.out.println("[DEBUG] Verifying OTP for " + email + ": storedOtp=" + user.getOtp() + ", entered=" + entered + ", expiry=" + user.getOtpExpiry());
+
+            if (user.getOtp() != null && user.getOtpExpiry() != null &&
+                user.getOtp().equals(entered) && user.getOtpExpiry().isAfter(LocalDateTime.now())) {
                 user.setEmailVerified(true);
-                user.setVerificationToken(null);
-                user.setTokenExpiry(null);
+                user.setOtp(null);
+                user.setOtpExpiry(null);
                 userRepository.save(user);
+                // send welcome email
+                try {
+                    emailService.sendWelcomeEmail(user);
+                } catch (Exception ignored) {}
                 return true;
             }
         }
@@ -99,5 +108,18 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public void resendOtp(String email) throws Exception {
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            throw new Exception("No user found with email: " + email);
+        }
+        User user = userOpt.get();
+        String otp = String.valueOf(100000 + (int)(Math.random() * 900000));
+        user.setOtp(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        userRepository.save(user);
+        emailService.sendOtpEmail(user);
     }
 }
