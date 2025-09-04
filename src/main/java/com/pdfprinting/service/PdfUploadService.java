@@ -104,4 +104,8 @@ public class PdfUploadService {
             pdfUploadRepository.save(upload);
         }
     }
+
+    public List<PdfUpload> getPendingUploads() {
+        return pdfUploadRepository.findByStatus(PdfUpload.Status.PENDING);
+    }
 }

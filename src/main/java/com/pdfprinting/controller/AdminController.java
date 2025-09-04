@@ -10,10 +10,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import com.pdfprinting.model.User;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,21 +28,31 @@ public class AdminController {
     @Autowired
     private PdfMergeService pdfMergeService;
 
-    private final List<String> availableBatches = Arrays.asList(
-        "Batch 1", "Batch 2", "Batch 3", "Batch 4", "Batch 5"
-    );
+    // Departments mapping is derived from pending uploads at runtime.
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        // Get upload counts for each batch
-        Map<String, Long> batchCounts = availableBatches.stream()
-            .collect(Collectors.toMap(
-                batch -> batch,
-                batch -> (long) pdfUploadService.getBatchUploads(batch).size()
-            ));
+        // Build hierarchy from pending uploads: department -> division -> batch -> count
+        List<PdfUpload> pending = pdfUploadService.getPendingUploads();
 
-        model.addAttribute("batches", availableBatches);
-        model.addAttribute("batchCounts", batchCounts);
+        Map<String, Map<String, Map<String, Long>>> hierarchy = new java.util.LinkedHashMap<>();
+
+        for (PdfUpload upload : pending) {
+            User user = upload.getUser();
+            if (user == null) continue;
+            String dept = user.getBranch() == null ? "Unknown Department" : user.getBranch();
+            String div = user.getDivision() == null ? "Unknown Division" : user.getDivision();
+            String batch = upload.getBatch() == null ? "Unknown Batch" : upload.getBatch();
+
+            hierarchy.computeIfAbsent(dept, d -> new java.util.LinkedHashMap<>())
+                     .computeIfAbsent(div, d -> new java.util.LinkedHashMap<>())
+                     .merge(batch, 1L, Long::sum);
+        }
+
+        long totalPending = pending.size();
+
+        model.addAttribute("hierarchy", hierarchy);
+        model.addAttribute("totalPending", totalPending);
         model.addAttribute("title", "Admin Dashboard - PDF Printing System");
         
         return "admin/dashboard";
@@ -52,8 +62,15 @@ public class AdminController {
     public String viewBatch(@PathVariable String batchName, Model model) {
         List<PdfUpload> uploads = pdfUploadService.getBatchUploads(batchName);
         
-        model.addAttribute("batchName", batchName);
-        model.addAttribute("uploads", uploads);
+    long totalFiles = uploads.size();
+    double totalSizeMb = uploads.stream().mapToLong(PdfUpload::getFileSize).sum() / 1024.0 / 1024.0;
+    long uniqueStudents = uploads.stream().map(u -> u.getUser().getId()).distinct().count();
+
+    model.addAttribute("batchName", batchName);
+    model.addAttribute("uploads", uploads);
+    model.addAttribute("totalFiles", totalFiles);
+    model.addAttribute("totalSizeMb", totalSizeMb);
+    model.addAttribute("uniqueStudents", uniqueStudents);
         model.addAttribute("title", batchName + " - Admin Dashboard");
         
         return "admin/batch-details";
@@ -73,6 +90,8 @@ public class AdminController {
 
             // Store merged PDF in session or temporary storage for download
             byte[] mergedPdf = pdfMergeService.mergeBatchPdfs(batchName);
+            // use mergedPdf length in a debug log to avoid unused variable warning
+            System.out.println("Merged PDF size: " + (mergedPdf == null ? 0 : mergedPdf.length));
             
             // Clear the batch queue
             pdfUploadService.clearBatchUploads(batchName);
@@ -111,15 +130,13 @@ public class AdminController {
 
     @GetMapping("/statistics")
     public String statistics(Model model) {
-        // Get statistics for all batches
-        Map<String, Long> batchCounts = availableBatches.stream()
-            .collect(Collectors.toMap(
-                batch -> batch,
-                batch -> (long) pdfUploadService.getBatchUploads(batch).size()
-            ));
+        // Get statistics from pending uploads grouped by batch
+        List<PdfUpload> pending = pdfUploadService.getPendingUploads();
+        Map<String, Long> batchCounts = pending.stream()
+            .collect(Collectors.groupingBy(PdfUpload::getBatch, Collectors.counting()));
 
-        long totalPending = batchCounts.values().stream().mapToLong(Long::longValue).sum();
-        
+        long totalPending = pending.size();
+
         model.addAttribute("batchCounts", batchCounts);
         model.addAttribute("totalPending", totalPending);
         model.addAttribute("title", "Statistics - Admin Dashboard");

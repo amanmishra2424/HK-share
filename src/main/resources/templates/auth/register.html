@@ -125,12 +125,17 @@
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="phoneNumber" class="form-label">
-                                        <i class="fas fa-phone me-1"></i>Phone Number *
+                                    <label for="division" class="form-label">
+                                        <i class="fas fa-layer-group me-1"></i>Division *
                                     </label>
-                                    <input type="tel" class="form-control" id="phoneNumber" th:field="*{phoneNumber}" required>
-                                    <div th:if="${#fields.hasErrors('phoneNumber')}" class="text-danger small mt-1">
-                                        <span th:errors="*{phoneNumber}"></span>
+                                    <select class="form-select" id="division" th:field="*{division}" required>
+                                        <option value="">Select Division</option>
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                    </select>
+                                    <div th:if="${#fields.hasErrors('division')}" class="text-danger small mt-1">
+                                        <span th:errors="*{division}"></span>
                                     </div>
                                 </div>
                                 
@@ -142,13 +147,26 @@
                                         <option value="">Select Batch</option>
                                         <option value="Batch 1">Batch 1</option>
                                         <option value="Batch 2">Batch 2</option>
-                                        <option value="Batch 3">Batch 3</option>
-                                        <option value="Batch 4">Batch 4</option>
-                                        <option value="Batch 5">Batch 5</option>
                                     </select>
                                     <div th:if="${#fields.hasErrors('batch')}" class="text-danger small mt-1">
                                         <span th:errors="*{batch}"></span>
                                     </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="phoneNumber" class="form-label">
+                                        <i class="fas fa-phone me-1"></i>Phone Number *
+                                    </label>
+                                    <input type="tel" class="form-control" id="phoneNumber" th:field="*{phoneNumber}" required>
+                                    <div th:if="${#fields.hasErrors('phoneNumber')}" class="text-danger small mt-1">
+                                        <span th:errors="*{phoneNumber}"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <!-- Removed duplicate batch field; single batch select is above -->
                                 </div>
                             </div>
 
