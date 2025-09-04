@@ -100,8 +100,8 @@
                 </h3>
             </div>
             <div class="col-md-4 text-end" th:if="${!#lists.isEmpty(uploads)}">
-                <form method="post" th:action="@{/admin/merge/{batch}(batch=${batchName})}" 
-                      onsubmit="return confirm('Are you sure you want to merge all ' + [[${#lists.size(uploads)}]] + ' PDFs? This will clear the queue for this batch.')">
+            <form method="post" th:action="@{/admin/merge/{batch}(batch=${batchName})}" 
+                onsubmit="return confirm('Are you sure you want to merge all PDFs? This will clear the queue for this batch.')">
                     <button type="submit" class="btn btn-merge">
                         <i class="fas fa-compress-arrows-alt me-2"></i>
                         Merge All PDFs (<span th:text="${#lists.size(uploads)}">0</span>)
@@ -176,14 +176,14 @@
                                     <h4 class="text-primary" th:text="${#lists.size(uploads)}">0</h4>
                                     <small class="text-muted">Total Files</small>
                                 </div>
-                                <div class="col-md-3 text-center">
-                                    <h4 class="text-info" th:text="${uploads.stream().mapToLong(u -> u.fileSize).sum() / 1024.0 / 1024.0}">0</h4>
-                                    <small class="text-muted">Total Size (MB)</small>
-                                </div>
-                                <div class="col-md-3 text-center">
-                                    <h4 class="text-success" th:text="${uploads.stream().map(u -> u.user).distinct().count()}">0</h4>
-                                    <small class="text-muted">Unique Students</small>
-                                </div>
+                                        <div class="col-md-3 text-center">
+                                            <h4 class="text-info" th:text="${totalSizeMb}">0</h4>
+                                            <small class="text-muted">Total Size (MB)</small>
+                                        </div>
+                                        <div class="col-md-3 text-center">
+                                            <h4 class="text-success" th:text="${uniqueStudents}">0</h4>
+                                            <small class="text-muted">Unique Students</small>
+                                        </div>
                                 <div class="col-md-3 text-center">
                                     <h4 class="text-warning">READY</h4>
                                     <small class="text-muted">Status</small>

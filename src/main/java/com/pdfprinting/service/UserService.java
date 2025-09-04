@@ -38,6 +38,7 @@ public class UserService {
                 admin.setRollNumber("ADMIN001");
                 admin.setPhoneNumber("0000000000");
                 admin.setBatch("Admin");
+                admin.setDivision("Admin");
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(User.Role.ADMIN);
                 admin.setEmailVerified(true);

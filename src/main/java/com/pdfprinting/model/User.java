@@ -28,6 +28,9 @@ public class User {
     @NotBlank(message = "Branch is required")
     private String branch;
 
+    @NotBlank(message = "Division is required")
+    private String division;
+
     @NotBlank(message = "Roll number is required")
     @Column(unique = true)
     private String rollNumber;
@@ -70,6 +73,9 @@ public class User {
         this.batch = batch;
         this.password = password;
     }
+
+    public String getDivision() { return division; }
+    public void setDivision(String division) { this.division = division; }
 
     // Getters and Setters
     public Long getId() { return id; }
