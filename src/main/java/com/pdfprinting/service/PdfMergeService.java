@@ -1,19 +1,16 @@
 package com.pdfprinting.service;
 
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfReader;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.kernel.utils.PdfMerger;
-import com.pdfprinting.model.PdfUpload;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.pdfprinting.model.PdfUpload;
 
 @Service
 public class PdfMergeService {
@@ -29,52 +26,54 @@ public class PdfMergeService {
 
     public byte[] mergeBatchPdfs(String batchName) throws Exception {
         List<PdfUpload> uploads = pdfUploadService.getBatchUploads(batchName);
-        
+
         if (uploads.isEmpty()) {
             throw new Exception("No PDFs found for batch: " + batchName);
         }
 
+        PDFMergerUtility mergerUtility = new PDFMergerUtility();
         ByteArrayOutputStream mergedOutputStream = new ByteArrayOutputStream();
-        PdfDocument mergedDocument = new PdfDocument(new PdfWriter(mergedOutputStream));
-        PdfMerger merger = new PdfMerger(mergedDocument);
+        mergerUtility.setDestinationStream(mergedOutputStream);
 
         try {
             for (PdfUpload upload : uploads) {
                 try {
                     // Download PDF from GitHub
                     byte[] pdfBytes = gitHubStorageService.downloadFile(upload.getGithubPath());
-                    
+
                     int copyCount = upload.getCopyCount();
-                    
+
                     for (int copy = 1; copy <= copyCount; copy++) {
-                        // Create PDF document from bytes for each copy
+                        // Add each copy as a source stream to the merger
                         ByteArrayInputStream inputStream = new ByteArrayInputStream(pdfBytes);
-                        PdfDocument sourceDocument = new PdfDocument(new PdfReader(inputStream));
-                        
-                        // Merge all pages from source document
-                        merger.merge(sourceDocument, 1, sourceDocument.getNumberOfPages());
-                        
-                        sourceDocument.close();
-                        inputStream.close();
+                        mergerUtility.addSource(inputStream);
+                        // PDFMergerUtility will read the streams when merging; streams are closed by PDFBox internals
                     }
-                    
+
                 } catch (Exception e) {
-                    System.err.println("Failed to merge PDF: " + upload.getOriginalFileName() + " - " + e.getMessage());
+                    System.err.println("Failed to add PDF to merger: " + upload.getOriginalFileName() + " - " + e.getMessage());
                     // Continue with other files
                 }
             }
-            
-            mergedDocument.close();
+
+            // Execute the merge
+            mergerUtility.mergeDocuments(null);
+
             byte[] mergedPdfBytes = mergedOutputStream.toByteArray();
-            
+
             // Cache the merged PDF for download
             mergedPdfCache.put(batchName, mergedPdfBytes);
-            
+
             return mergedPdfBytes;
-            
+
         } catch (Exception e) {
-            mergedDocument.close();
-            throw new Exception("Failed to merge PDFs: " + e.getMessage());
+            throw new Exception("Failed to merge PDFs: " + e.getMessage(), e);
+        } finally {
+            // cleanup is handled by streams, but ensure the output stream is closed
+            try {
+                mergedOutputStream.close();
+            } catch (Exception ignore) {
+            }
         }
     }
 
