@@ -1,15 +1,25 @@
 package com.pdfprinting.controller;
 
-import com.pdfprinting.model.User;
-import com.pdfprinting.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.pdfprinting.model.User;
+import com.pdfprinting.security.JwtUtil;
 import com.pdfprinting.service.CustomUserDetailsService;
+import com.pdfprinting.service.UserService;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Controller
 public class AuthController {
@@ -19,6 +29,12 @@ public class AuthController {
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @GetMapping("/")
     public String home() {
@@ -69,16 +85,24 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public String verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp, Model model) {
+    public String verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp, Model model, HttpServletResponse response) {
         boolean verified = userService.verifyOtp(email, otp == null ? "" : otp.trim());
         if (verified) {
-            // Auto-login the user
+            // Issue JWT cookie for client
             try {
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                String role = userDetails.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("STUDENT");
+                String token = jwtUtil.generateToken(email, role);
+                // set cookie
+                // cookie name: JWT, HttpOnly, secure=false for local dev (set true in prod), path=/
+                Cookie cookie = new Cookie("JWT", token);
+                cookie.setHttpOnly(true);
+                cookie.setPath("/");
+                cookie.setMaxAge((int) (86400));
+                // don't set secure here to keep local dev working; advise enabling in production
+                response.addCookie(cookie);
             } catch (Exception ex) {
-                // ignore auth failure; user can still login manually
+                // ignore token issuance failure; user can still login manually
             }
             // Redirect to dashboard after successful verification and auto-login
             return "redirect:/dashboard";
@@ -86,6 +110,30 @@ public class AuthController {
             model.addAttribute("email", email);
             model.addAttribute("error", "Invalid or expired OTP. Please try again.");
             return "auth/verify-otp";
+        }
+    }
+
+    @PostMapping("/login")
+    public String handleLogin(@RequestParam("username") String username,
+                              @RequestParam("password") String password,
+                              HttpServletResponse response,
+                              Model model) {
+        try {
+            Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            String role = userDetails.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("STUDENT");
+            String token = jwtUtil.generateToken(username, role);
+
+            Cookie cookie = new Cookie("JWT", token);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge((int) (86400));
+            response.addCookie(cookie);
+
+            return "redirect:/dashboard";
+        } catch (Exception e) {
+            model.addAttribute("error", "Invalid email or password. Please make sure your email is verified.");
+            return "auth/login";
         }
     }
 
