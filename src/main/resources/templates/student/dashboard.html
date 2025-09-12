@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Student Dashboard - PDF Printing System</title>
+    <title th:text="${title}">Student Dashboard - Print For You</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -68,10 +68,10 @@
 </head>
 <body class="bg-light">
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #2c3e50, #34495e);">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: transparent;">
         <div class="container">
             <a class="navbar-brand" href="/student/dashboard">
-                <i class="fas fa-print me-2"></i>PDF Printing System
+                <i class="fas fa-print me-2"></i>Print For You
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3">
@@ -84,28 +84,23 @@
         </div>
     </nav>
 
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
+    <!-- Minimal Aesthetic Header -->
+    <header class="py-5" style="background: linear-gradient(90deg, #e6f7ff 0%, #f0f7f4 100%);">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1 class="mb-2">
-                        <i class="fas fa-tachometer-alt me-3"></i>Student Dashboard
-                    </h1>
-                    <p class="mb-0 lead">
-                        Welcome back, <span th:text="${user.name}">Student</span>! 
-                        Manage your PDF uploads and track your printing queue.
-                    </p>
+                    <h1 class="display-6 mb-1" style="font-weight:700; letter-spacing: -1px;">Pornt For You</h1>
+                    <p class="text-muted mb-0">A minimal, clean dashboard to manage your uploads.</p>
                 </div>
                 <div class="col-md-4 text-end">
-                    <div class="stats-card">
-                        <h3 class="text-primary mb-1" th:text="${#lists.size(uploads)}">0</h3>
-                        <small class="text-muted">Total Uploads</small>
+                    <div class="px-3 py-2" style="background:white; border-radius:12px; box-shadow: 0 6px 20px rgba(16,24,40,0.06); display:inline-block;">
+                        <div class="h4 mb-0" th:text="${#lists.size(uploads)}">0</div>
+                        <small class="text-muted">Uploads</small>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </header>
 
     <div class="container">
         <!-- Alert Messages -->
@@ -178,40 +173,14 @@
                 </div>
             </div>
 
-            <!-- User Info Section -->
+            <!-- Removed student personal info to keep UI minimalistic -->
             <div class="col-md-6 mb-4">
-                <div class="card shadow">
-                    <div class="card-header bg-info text-white">
-                        <h4 class="mb-0">
-                            <i class="fas fa-user me-2"></i>Your Information
-                        </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-user me-2 text-primary"></i>Name:</strong>
-                                <div th:text="${user.name}">Student Name</div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-envelope me-2 text-primary"></i>Email:</strong>
-                                <div th:text="${user.email}">student@email.com</div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-graduation-cap me-2 text-primary"></i>Branch:</strong>
-                                <div th:text="${user.branch}">Computer Science</div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-id-card me-2 text-primary"></i>Roll Number:</strong>
-                                <div th:text="${user.rollNumber}">CS001</div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-phone me-2 text-primary"></i>Phone:</strong>
-                                <div th:text="${user.phoneNumber}">1234567890</div>
-                            </div>
-                            <div class="col-sm-6 mb-3">
-                                <strong><i class="fas fa-users me-2 text-primary"></i>Batch:</strong>
-                                <div th:text="${user.batch}">Batch 1</div>
-                            </div>
+                <div class="card shadow-sm" style="border-radius:12px;">
+                    <div class="card-body" style="min-height:100%; display:flex; align-items:center; justify-content:center;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-user-circle fa-3x mb-2" style="color:#cbd5e1"></i>
+                            <h5 class="mb-1">Welcome, <span th:text="${user.name}">Student</span></h5>
+                            <p class="small">Your profile info has been hidden for a cleaner experience.</p>
                         </div>
                     </div>
                 </div>

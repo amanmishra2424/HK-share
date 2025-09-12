@@ -1,5 +1,10 @@
 package com.pdfprinting.controller;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,7 +23,6 @@ import com.pdfprinting.security.JwtUtil;
 import com.pdfprinting.service.CustomUserDetailsService;
 import com.pdfprinting.service.UserService;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Controller
@@ -85,7 +89,7 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public String verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp, Model model, HttpServletResponse response) {
+    public String verifyOtp(@RequestParam("email") String email, @RequestParam("otp") String otp, Model model, HttpServletResponse response, jakarta.servlet.http.HttpServletRequest request) {
         boolean verified = userService.verifyOtp(email, otp == null ? "" : otp.trim());
         if (verified) {
             // Issue JWT cookie for client
@@ -93,14 +97,19 @@ public class AuthController {
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
                 String role = userDetails.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("STUDENT");
                 String token = jwtUtil.generateToken(email, role);
-                // set cookie
-                // cookie name: JWT, HttpOnly, secure=false for local dev (set true in prod), path=/
-                Cookie cookie = new Cookie("JWT", token);
-                cookie.setHttpOnly(true);
-                cookie.setPath("/");
-                cookie.setMaxAge((int) (86400));
-                // don't set secure here to keep local dev working; advise enabling in production
-                response.addCookie(cookie);
+                                // Build a single Set-Cookie header with Expires and SameSite for reliable browser persistence
+                                long maxAge = 86400L;
+                                long expiryMs = Instant.now().toEpochMilli() + (maxAge * 1000L);
+                                String expires = ZonedDateTime.ofInstant(Instant.ofEpochMilli(expiryMs), ZoneId.of("GMT")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+                                StringBuilder sb = new StringBuilder();
+                                sb.append("JWT=").append(token)
+                                    .append("; Path=/; HttpOnly; Max-Age=").append(maxAge)
+                                    .append("; Expires=").append(expires)
+                                    .append("; SameSite=Lax");
+                                if (request.isSecure()) {
+                                        sb.append("; Secure");
+                                }
+                                response.addHeader("Set-Cookie", sb.toString());
             } catch (Exception ex) {
                 // ignore token issuance failure; user can still login manually
             }
@@ -117,18 +126,26 @@ public class AuthController {
     public String handleLogin(@RequestParam("username") String username,
                               @RequestParam("password") String password,
                               HttpServletResponse response,
-                              Model model) {
+                              Model model,
+                              jakarta.servlet.http.HttpServletRequest request) {
         try {
             Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
             String role = userDetails.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("STUDENT");
             String token = jwtUtil.generateToken(username, role);
 
-            Cookie cookie = new Cookie("JWT", token);
-            cookie.setHttpOnly(true);
-            cookie.setPath("/");
-            cookie.setMaxAge((int) (86400));
-            response.addCookie(cookie);
+                        long maxAge = 86400L;
+                        long expiryMs = Instant.now().toEpochMilli() + (maxAge * 1000L);
+                        String expires = ZonedDateTime.ofInstant(Instant.ofEpochMilli(expiryMs), ZoneId.of("GMT")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("JWT=").append(token)
+                            .append("; Path=/; HttpOnly; Max-Age=").append(maxAge)
+                            .append("; Expires=").append(expires)
+                            .append("; SameSite=Lax");
+                        if (request.isSecure()) {
+                                sb.append("; Secure");
+                        }
+                        response.addHeader("Set-Cookie", sb.toString());
 
             return "redirect:/dashboard";
         } catch (Exception e) {
