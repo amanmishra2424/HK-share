@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 public class UserService {
@@ -59,27 +60,57 @@ public class UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new Exception("Email already registered");
         }
+        // Normalize inputs (trim and uppercase branch/division) to avoid false duplicates
+        String branch = user.getBranch() == null ? "" : user.getBranch().trim();
+        String division = user.getDivision() == null ? "" : user.getDivision().trim();
+        String roll = user.getRollNumber() == null ? "" : user.getRollNumber().trim();
+        user.setBranch(branch);
+        user.setDivision(division);
+        user.setRollNumber(roll);
 
-        // Check if roll number already exists
-        if (userRepository.existsByRollNumber(user.getRollNumber())) {
-            throw new Exception("Roll number already registered");
+        // Check if roll number exists in the same branch and division
+        try {
+            if (userRepository.existsByBranchAndDivisionAndRollNumber(branch, division, roll)) {
+                throw new Exception("Roll number '" + roll + "' already exists in division " + division + " of " + branch + " branch.");
+            }
+        } catch (Exception e) {
+            System.err.println("Error checking roll number: " + e.getMessage());
+            throw new Exception("Error validating roll number. Please try again. If the problem persists, contact support.");
         }
 
         // Encode password
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        
-    // Generate OTP for email verification
-    String otp = String.valueOf(100000 + (int)(Math.random() * 900000)); // 6-digit OTP
-    user.setOtp(otp);
-    user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
-    user.setRole(User.Role.STUDENT);
 
-    User savedUser = userRepository.save(user);
+        // Generate OTP for email verification
+        String otp = String.valueOf(100000 + (int)(Math.random() * 900000)); // 6-digit OTP
+        user.setOtp(otp);
+        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        user.setRole(User.Role.STUDENT);
 
-    // Send OTP email
-    emailService.sendOtpEmail(savedUser);
+        try {
+            // Debug log: show values being saved to help diagnose duplicate constraint
+            System.out.println("[DEBUG] Attempting to save user: branch='" + user.getBranch() + "', division='" + user.getDivision() + "', rollNumber='" + user.getRollNumber() + "', email='" + user.getEmail() + "'");
+            User savedUser = userRepository.save(user);
 
-    return savedUser;
+            // Send OTP email
+            emailService.sendOtpEmail(savedUser);
+
+            return savedUser;
+        } catch (DataIntegrityViolationException dive) {
+            // Translate common DB constraint errors to user-friendly messages
+            String msg = dive.getMostSpecificCause() != null ? dive.getMostSpecificCause().getMessage() : dive.getMessage();
+            if (msg != null && msg.contains("users.UKbav7qiaas16cr7jn0eb4n7fy0")) {
+                // unique index on branch+division+rollNumber violated
+                throw new Exception("Roll number '" + user.getRollNumber() + "' already exists in division " + user.getDivision() + " of " + user.getBranch() + " branch.");
+            }
+            // If DB says duplicate entry but index name not present, check fallback: global roll number
+            if (msg != null && msg.toLowerCase().contains("duplicate") || userRepository.existsByRollNumber(user.getRollNumber())) {
+                throw new Exception("Roll number '" + user.getRollNumber() + "' appears to be already registered in the same department and division. If you believe this is incorrect, please contact support.");
+            }
+            // Unknown data integrity issue
+            System.err.println("DataIntegrityViolation while saving user: " + msg);
+            throw new Exception("Failed to register user due to database constraint. Please verify your input or contact support.");
+        }
     }
 
 

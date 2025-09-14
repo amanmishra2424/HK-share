@@ -1,242 +1,240 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Admin Dashboard - PDF Printing System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .dashboard-header {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-        }
-        .batch-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            text-align: center;
-            border: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .batch-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-        }
-        .batch-card.has-files {
-            border-left: 5px solid #27ae60;
-        }
-        .batch-card.no-files {
-            border-left: 5px solid #95a5a6;
-        }
-        .stats-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            text-align: center;
-            border: none;
-        }
-        .btn-merge {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            border: none;
-            padding: 10px 25px;
-            border-radius: 25px;
-            color: white;
-            font-weight: 600;
-        }
-        .btn-merge:hover {
-            background: linear-gradient(135deg, #e67e22, #d35400);
-            color: white;
-        }
-        .btn-download {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
-            border: none;
-            padding: 10px 25px;
-            border-radius: 25px;
-            color: white;
-            font-weight: 600;
-        }
-        .btn-download:hover {
-            background: linear-gradient(135deg, #229954, #27ae60);
-            color: white;
-        }
-        .admin-nav {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title}">Admin Dashboard - Print For You</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Background gradient animation */
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb, #a18cd1);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Glass frame */
+    .admin-frame {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin: 2rem auto;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      max-width: 1200px;
+    }
+
+    /* Navbar */
+    .admin-nav {
+      background: rgba(44, 62, 80, 0.8);
+      backdrop-filter: blur(8px);
+    }
+
+    /* Header inside frame */
+  .dashboard-header {
+  color: #fff;
+  background: linear-gradient(10deg, #4e54df, #6fc1); /* blue + purple gradient */
+  border-radius: 15px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+}
+    
+
+    /* Cards */
+    .batch-card, .stats-card {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+    .batch-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .batch-card.has-files { border-left: 5px solid #27ae60; }
+    .batch-card.no-files { border-left: 5px solid #95a5a6; }
+
+    /* Buttons */
+    .btn-merge {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      color: white;
+      font-weight: 600;
+    }
+    .btn-merge:hover {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+      color: white;
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #27ae60, #2ecc71);
+      border: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      color: white;
+      font-weight: 600;
+    }
+    .btn-download:hover {
+      background: linear-gradient(135deg, #229954, #27ae60);
+      color: white;
+    }
+
+    /* Footer */
+    footer {
+      background: rgba(44, 62, 80, 0.9);
+      color: white;
+      margin-top: 3rem;
+      padding: 1rem 0;
+      text-align: center;
+      border-radius: 15px 15px 0 0;
+    }
+  </style>
 </head>
-<body class="bg-light">
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark admin-nav">
-        <div class="container">
-            <a class="navbar-brand" href="/admin/dashboard">
-                <i class="fas fa-shield-alt me-2"></i>Admin Panel
-            </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/admin/statistics">
-                    <i class="fas fa-chart-bar me-1"></i>Statistics
-                </a>
-                <span class="navbar-text me-3">
-                    Administrator
-                </span>
-                <a class="btn btn-outline-light btn-sm" href="/logout">
-                    <i class="fas fa-sign-out-alt me-1"></i>Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="mb-2">
-                        <i class="fas fa-cogs me-3"></i>Admin Dashboard
-                    </h1>
-                    <p class="mb-0 lead">
-                        Manage student PDF uploads, merge files by batch, and download consolidated documents.
-                    </p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <div class="stats-card">
-                        <h3 class="text-danger mb-1" th:text="${totalPending}">0</h3>
-                        <small class="text-muted">Total Pending Files</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark admin-nav">
     <div class="container">
-        <!-- Alert Messages -->
-        <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>
-            <span th:text="${message}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        
-        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i>
-            <span th:text="${error}"></span>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
-        <!-- Download Ready Alert -->
-        <div th:if="${downloadReady}" class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-download me-2"></i>
-            Your merged PDF is ready for download!
-            <a th:href="@{/admin/download/{batchName}(batchName=${batchName})}" class="btn btn-download btn-sm ms-3">
-                <i class="fas fa-download me-1"></i>Download Now
-            </a>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-
-        <!-- Batch Management Section -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <h3 class="mb-4">
-                    <i class="fas fa-layer-group me-2"></i>Batch Management
-                </h3>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-12">
-                <h3 class="mb-4"><i class="fas fa-sitemap me-2"></i>Departments</h3>
-                <div th:each="deptEntry : ${hierarchy.entrySet()}" class="mb-4">
-                    <h4 th:text="${deptEntry.key}">Department Name</h4>
-                    <div class="ms-3" th:each="divEntry : ${deptEntry.value.entrySet()}">
-                        <h5 th:text="${divEntry.key}">Division Name</h5>
-                        <div class="row">
-                            <div class="col-md-4 mb-3" th:each="batchEntry : ${divEntry.value.entrySet()}">
-                                <div class="batch-card" th:classappend="${batchEntry.value > 0} ? 'has-files' : 'no-files'">
-                                    <h5 th:text="${batchEntry.key}">Batch</h5>
-                                    <div class="mb-2">
-                                        <span class="badge fs-6" th:text="${batchEntry.value} + ' files'">0 files</span>
-                                    </div>
-                                    <div class="d-grid gap-2" th:if="${batchEntry.value > 0}">
-                                        <a th:href="@{/admin/batch/{batch}(batch=${batchEntry.key})}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-eye me-1"></i>View Files
-                                        </a>
-                                        <form method="post" th:action="@{/admin/merge/{batch}(batch=${batchEntry.key})}" onsubmit="return confirm('Are you sure you want to merge all PDFs in this batch? This action cannot be undone.')">
-                                            <button type="submit" class="btn btn-merge btn-sm w-100">
-                                                <i class="fas fa-compress-arrows-alt me-1"></i>Merge &amp; Process
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions Section -->
-        <div class="row mt-5">
-            <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-dark text-white">
-                        <h4 class="mb-0">
-                            <i class="fas fa-bolt me-2"></i>Quick Actions
-                        </h4>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-4 text-center">
-                                <a href="/admin/statistics" class="btn btn-outline-info btn-lg">
-                                    <i class="fas fa-chart-pie fa-2x d-block mb-2"></i>
-                                    View Statistics
-                                </a>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <button class="btn btn-outline-warning btn-lg" onclick="location.reload()">
-                                    <i class="fas fa-sync-alt fa-2x d-block mb-2"></i>
-                                    Refresh Data
-                                </button>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <a href="/admin/dashboard" class="btn btn-outline-secondary btn-lg">
-                                    <i class="fas fa-home fa-2x d-block mb-2"></i>
-                                    Dashboard Home
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+      <a class="navbar-brand fw-bold" href="/admin/dashboard">
+        <i class="fas fa-shield-alt me-2"></i>Admin Panel
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/admin/statistics">
+          <i class="fas fa-chart-bar me-1"></i>Statistics
+        </a>
+        <span class="navbar-text me-3">Administrator</span>
+        <a class="btn btn-outline-light btn-sm" href="/logout">
+          <i class="fas fa-sign-out-alt me-1"></i>Logout
+        </a>
+      </div>
     </div>
+  </nav>
 
-    <!-- Footer -->
-    <footer class="mt-5 py-4 admin-nav text-white">
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2024 PDF Printing System - Admin Panel. All rights reserved.</p>
+  <!-- Centered Glass Frame -->
+  <div class="container">
+    <div class="admin-frame">
+
+      <!-- Dashboard Header -->
+      <div class="dashboard-header">
+        <h1 class="mb-2"><i class="fas fa-cogs me-2"></i>Admin Dashboard</h1>
+        <p class="lead mb-0">
+          Manage student uploads, merge PDFs by batch & download consolidated files.
+        </p>
+      </div>
+
+      <!-- Stats -->
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="stats-card text-center">
+            <h3 class="text-danger mb-1" th:text="${totalPending}">0</h3>
+            <small class="text-muted">Total Pending Files</small>
+          </div>
         </div>
-    </footer>
+      </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Add click animation to batch cards
-        document.querySelectorAll('.batch-card').forEach(card => {
-            card.addEventListener('click', function() {
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 150);
-            });
-        });
+      <!-- Alerts -->
+      <div th:if="${message}" class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle me-2"></i><span th:text="${message}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      <div th:if="${downloadReady}" class="alert alert-info alert-dismissible fade show">
+        <i class="fas fa-download me-2"></i>Your merged PDF is ready!
+        <a th:href="@{/admin/download/{batchName}(batchName=${batchName})}" class="btn btn-download btn-sm ms-3">
+          <i class="fas fa-download me-1"></i>Download Now
+        </a>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
 
-        // Auto-refresh every 30 seconds
-        setTimeout(() => {
-            location.reload();
-        }, 30000);
-    </script>
+      <!-- Batch Management -->
+      <h3 class="mb-4"><i class="fas fa-layer-group me-2"></i>Batch Management</h3>
+      <div th:each="deptEntry : ${hierarchy.entrySet()}" class="mb-4">
+        <h4 th:text="${deptEntry.key}">Department</h4>
+        <div class="ms-3" th:each="divEntry : ${deptEntry.value.entrySet()}">
+          <h5 th:text="${divEntry.key}">Division</h5>
+          <div class="row">
+            <div class="col-md-4 mb-3" th:each="batchEntry : ${divEntry.value.entrySet()}">
+              <div class="batch-card" th:classappend="${batchEntry.value > 0} ? 'has-files' : 'no-files'">
+                <h5 th:text="${batchEntry.key}">Batch</h5>
+                <span class="badge fs-6" th:text="${batchEntry.value} + ' files'">0 files</span>
+                <div class="d-grid gap-2 mt-2" th:if="${batchEntry.value > 0}">
+                  <a th:href="@{/admin/batch/{batch}(batch=${batchEntry.key})}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-eye me-1"></i>View Files
+                  </a>
+                  <form method="post" th:action="@{/admin/merge/{batch}(batch=${batchEntry.key})}"
+                        onsubmit="return confirm('Merge all PDFs in this batch? This cannot be undone.')">
+                    <button type="submit" class="btn btn-merge btn-sm w-100">
+                      <i class="fas fa-compress-arrows-alt me-1"></i>Merge &amp; Process
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card shadow mt-5">
+        <div class="card-header bg-dark text-white">
+          <h4 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-4 mb-3">
+              <a href="/admin/statistics" class="btn btn-outline-info btn-lg">
+                <i class="fas fa-chart-pie fa-2x d-block mb-2"></i>Statistics
+              </a>
+            </div>
+            <div class="col-md-4 mb-3">
+              <button class="btn btn-outline-warning btn-lg" onclick="location.reload()">
+                <i class="fas fa-sync-alt fa-2x d-block mb-2"></i>Refresh
+              </button>
+            </div>
+            <div class="col-md-4 mb-3">
+              <a href="/admin/dashboard" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-home fa-2x d-block mb-2"></i>Home
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p class="mb-0">&copy; 2024 Print For You - Admin Panel. All rights reserved.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Add click animation to batch cards
+    document.querySelectorAll('.batch-card').forEach(card => {
+      card.addEventListener('click', function() {
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => { this.style.transform = ''; }, 150);
+      });
+    });
+
+    // Auto-refresh every 30s
+    setTimeout(() => { location.reload(); }, 30000);
+  </script>
 </body>
 </html>

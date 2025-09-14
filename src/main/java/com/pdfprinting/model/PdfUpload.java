@@ -23,6 +23,12 @@ public class PdfUpload {
     private String batch;
 
     @Column(nullable = false)
+    private String branch;
+
+    @Column(nullable = false)
+    private String division;
+
+    @Column(nullable = false)
     private long fileSize;
 
     @Column(nullable = false)
@@ -42,10 +48,12 @@ public class PdfUpload {
     public PdfUpload() {}
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String batch, long fileSize, User user) {
+                     String branch, String division, String batch, long fileSize, User user) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
+        this.branch = branch;
+        this.division = division;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
@@ -53,15 +61,23 @@ public class PdfUpload {
     }
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String batch, long fileSize, User user, int copyCount) {
+                     String branch, String division, String batch, long fileSize, User user, int copyCount) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
+        this.branch = branch;
+        this.division = division;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
         this.copyCount = copyCount;
     }
+
+    public String getBranch() { return branch; }
+    public void setBranch(String branch) { this.branch = branch; }
+
+    public String getDivision() { return division; }
+    public void setDivision(String division) { this.division = division; }
 
     // Getters and Setters
     public Long getId() { return id; }

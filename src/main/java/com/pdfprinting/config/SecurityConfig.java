@@ -36,22 +36,28 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/", "/login", "/register", "/contact", "/terms",
-                               "/verify-email", "/verify-otp", "/resend-otp", "/debug-user",
-                               "/api/auth/**",
-                               "/css/**", "/js/**", "/images/**",
-                               "/h2-console/**").permitAll()
+                // Public pages and registration flow
+                .requestMatchers("/register", "/verify-otp", "/resend-otp", "/terms", "/contact").permitAll()
+                .requestMatchers("/", "/login", "/logout").permitAll()
+                // Static resources and API endpoints
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                // Role protected areas
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .anyRequest().authenticated()
             )
-            // Stateless: use JWTs for authentication. Form login and session-based auth removed.
             .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // no formLogin(), no server-side logout here; clients should clear the JWT cookie
-            
-            
-            .headers(headers -> headers.frameOptions().disable());
+            .headers(headers -> headers
+                .frameOptions().disable()
+                .cacheControl().disable()
+            )
+            .exceptionHandling(ex -> ex
+                .accessDeniedPage("/login?error=access-denied")
+            );
 
     // Add JWT filter before the username/password authentication filter
     http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);

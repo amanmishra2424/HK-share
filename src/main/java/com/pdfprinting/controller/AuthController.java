@@ -72,7 +72,11 @@ public class AuthController {
             // Redirect to dedicated OTP page after registration
             return "redirect:/verify-otp?email=" + user.getEmail();
         } catch (Exception e) {
-            model.addAttribute("error", e.getMessage());
+            String errorMessage = e.getMessage();
+            if (errorMessage == null || errorMessage.isBlank()) {
+                errorMessage = "Registration failed. Please verify your input or contact support.";
+            }
+            model.addAttribute("error", errorMessage);
             return "auth/register";
         }
     }
@@ -117,8 +121,7 @@ public class AuthController {
             return "redirect:/dashboard";
         } else {
             model.addAttribute("email", email);
-            model.addAttribute("error", "Invalid or expired OTP. Please try again.");
-            return "auth/verify-otp";
+            model.addAttribute("error", "Invalid or expired OTP. Please try again.");            return "auth/verify-otp";
         }
     }
 

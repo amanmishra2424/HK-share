@@ -1,94 +1,158 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Terms and Conditions - PDF Printing System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container my-5">
-        <div class="row justify-content-center">
-            <div class="col-md-10">
-                <div class="card shadow">
-                    <div class="card-header bg-info text-white text-center">
-                        <h2><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h2>
-                    </div>
-                    <div class="card-body p-5">
-                        <div class="terms-content">
-                            <h4>1. Acceptance of Terms</h4>
-                            <p>By accessing and using the PDF Printing System, you accept and agree to be bound by the terms and provision of this agreement.</p>
-                            
-                            <h4>2. User Registration</h4>
-                            <p>To use our services, you must:</p>
-                            <ul>
-                                <li>Provide accurate and complete registration information</li>
-                                <li>Verify your email address</li>
-                                <li>Maintain the security of your account credentials</li>
-                                <li>Be a current student of the institution</li>
-                            </ul>
-                            
-                            <h4>3. File Upload Guidelines</h4>
-                            <p>When uploading files, you agree to:</p>
-                            <ul>
-                                <li>Upload only PDF files</li>
-                                <li>Ensure files do not contain inappropriate or copyrighted content</li>
-                                <li>Respect file size limitations (maximum 10MB per file)</li>
-                                <li>Use the service for educational purposes only</li>
-                            </ul>
-                            
-                            <h4>4. Privacy and Data Protection</h4>
-                            <p>We are committed to protecting your privacy:</p>
-                            <ul>
-                                <li>Personal information is collected only for service provision</li>
-                                <li>Files are stored securely and deleted after processing</li>
-                                <li>We do not share your data with third parties</li>
-                                <li>You can request deletion of your account and data</li>
-                            </ul>
-                            
-                            <h4>5. Service Availability</h4>
-                            <p>While we strive to maintain continuous service:</p>
-                            <ul>
-                                <li>Service may be temporarily unavailable for maintenance</li>
-                                <li>We are not liable for service interruptions</li>
-                                <li>Processing times may vary based on queue size</li>
-                            </ul>
-                            
-                            <h4>6. Prohibited Activities</h4>
-                            <p>Users must not:</p>
-                            <ul>
-                                <li>Upload malicious or harmful content</li>
-                                <li>Attempt to breach system security</li>
-                                <li>Share account credentials with others</li>
-                                <li>Use the service for commercial purposes</li>
-                            </ul>
-                            
-                            <h4>7. Limitation of Liability</h4>
-                            <p>The PDF Printing System is provided "as is" without warranties. We are not liable for any damages arising from the use of our service.</p>
-                            
-                            <h4>8. Changes to Terms</h4>
-                            <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes via email.</p>
-                            
-                            <h4>9. Contact Information</h4>
-                            <p>For questions about these terms, please contact us at support@pdfprinting.com</p>
-                            
-                            <div class="text-muted mt-4">
-                                <small>Last updated: December 2024</small>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <a href="/login" class="btn btn-info">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Login
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms and Conditions - Print For You</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Background gradient */
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fcb69f);
+      background-size: 300% 300%;
+      animation: gradientBG 18s ease infinite;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    /* Card styling */
+    .terms-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+
+    h2.section-title {
+      font-weight: 700;
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .terms-content h4 {
+      margin-top: 1.5rem;
+      font-weight: 600;
+      color: #ff6b81;
+    }
+    .terms-content p, 
+    .terms-content ul {
+      color: #444;
+    }
+    .terms-content ul {
+      margin-left: 1rem;
+    }
+    .terms-content li {
+      margin-bottom: 0.5rem;
+    }
+
+    /* Scrollable terms box (if very long) */
+    .terms-content {
+      max-height: 60vh;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    /* Back button */
+    .btn-back {
+      background: #ff6b81;
+      color: white;
+      border-radius: 25px;
+      padding: 10px 20px;
+      font-weight: 500;
+    }
+    .btn-back:hover {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    /* Last updated text */
+    .last-updated {
+      font-size: 0.9rem;
+      color: #777;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="terms-card">
+      <h2 class="section-title"><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h2>
+
+      <div class="terms-content">
+        <h4><i class="fas fa-check-circle me-2"></i>1. Acceptance of Terms</h4>
+        <p>By accessing and using Print For You, you accept and agree to be bound by these terms and conditions.</p>
+        
+        <h4><i class="fas fa-user me-2"></i>2. User Registration</h4>
+        <p>To use our services, you must:</p>
+        <ul>
+          <li>Provide accurate and complete registration information</li>
+          <li>Verify your email address</li>
+          <li>Maintain the security of your account credentials</li>
+          <li>Be a current student of the institution</li>
+        </ul>
+
+        <h4><i class="fas fa-file-pdf me-2"></i>3. File Upload Guidelines</h4>
+        <p>When uploading files, you agree to:</p>
+        <ul>
+          <li>Upload only PDF files</li>
+          <li>Avoid inappropriate or copyrighted content</li>
+          <li>Respect file size limitations (maximum 10MB per file)</li>
+          <li>Use the service for educational purposes only</li>
+        </ul>
+
+        <h4><i class="fas fa-shield-alt me-2"></i>4. Privacy and Data Protection</h4>
+        <ul>
+          <li>Personal information is collected only for service provision</li>
+          <li>Files are stored securely and deleted after processing</li>
+          <li>We do not share your data with third parties</li>
+          <li>You can request deletion of your account and data</li>
+        </ul>
+
+        <h4><i class="fas fa-server me-2"></i>5. Service Availability</h4>
+        <ul>
+          <li>Service may be temporarily unavailable for maintenance</li>
+          <li>We are not liable for service interruptions</li>
+          <li>Processing times may vary based on queue size</li>
+        </ul>
+
+        <h4><i class="fas fa-ban me-2"></i>6. Prohibited Activities</h4>
+        <ul>
+          <li>Uploading malicious or harmful content</li>
+          <li>Attempting to breach system security</li>
+          <li>Sharing account credentials</li>
+          <li>Using the service for commercial purposes</li>
+        </ul>
+
+        <h4><i class="fas fa-exclamation-triangle me-2"></i>7. Limitation of Liability</h4>
+        <p>The service is provided "as is" without warranties. We are not liable for damages arising from its use.</p>
+
+        <h4><i class="fas fa-edit me-2"></i>8. Changes to Terms</h4>
+        <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes via email.</p>
+
+        <h4><i class="fas fa-address-card me-2"></i>9. Contact Information</h4>
+        <p>For questions about these terms, please contact us at <strong>printtech030225@gmail.com</strong></p>
+
+        <div class="last-updated mt-3">
+          <small>Last updated: December 2024</small>
+        </div>
+      </div>
+
+      <!-- Back button -->
+      <div class="text-center mt-4">
+        <a href="/login" class="btn btn-back">
+          <i class="fas fa-arrow-left me-2"></i> Back to Login
+        </a>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -1,105 +1,163 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Contact Us - PDF Printing System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us - Print For You</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* Background gradient (pinkish theme like login) */
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fcb69f);
+      background-size: 300% 300%;
+      animation: gradientBG 18s ease infinite;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Glassmorphism style card */
+    .contact-card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+
+    h2.section-title {
+      font-weight: 700;
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    /* Info box cards */
+    .info-box {
+      background: #fff;
+      border-radius: 15px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .info-box i {
+      font-size: 2rem;
+      color: #ff6b81;
+      margin-bottom: 1rem;
+    }
+    .info-box h5 {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .info-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Back button */
+    .btn-back {
+      background: #ff6b81;
+      color: white;
+      border-radius: 25px;
+      padding: 8px 18px;
+      font-weight: 500;
+      margin-top: 1rem;
+    }
+    .btn-back:hover {
+      background: #e74c3c;
+      color: #fff;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
-<body class="bg-light">
-    <div class="container my-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white text-center">
-                        <h2><i class="fas fa-envelope me-2"></i>Contact Us</h2>
-                    </div>
-                    <div class="card-body p-5">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Get in Touch</h4>
-                                <p class="text-muted mb-4">
-                                    Have questions about our PDF printing service? We're here to help!
-                                </p>
-                                
-                                <div class="contact-info">
-                                    <div class="mb-3">
-                                        <i class="fas fa-envelope text-primary me-3"></i>
-                                        <strong>Email:</strong> support@pdfprinting.com
-                                    </div>
-                                    <div class="mb-3">
-                                        <i class="fas fa-phone text-primary me-3"></i>
-                                        <strong>Phone:</strong> +1 (555) 123-4567
-                                    </div>
-                                    <div class="mb-3">
-                                        <i class="fas fa-clock text-primary me-3"></i>
-                                        <strong>Hours:</strong> Mon-Fri 9:00 AM - 6:00 PM
-                                    </div>
-                                    <div class="mb-3">
-                                        <i class="fas fa-map-marker-alt text-primary me-3"></i>
-                                        <strong>Address:</strong> 123 University Ave, Campus City
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <h4 class="mb-3">Frequently Asked Questions</h4>
-                                
-                                <div class="accordion" id="faqAccordion">
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                                How do I upload PDFs?
-                                            </button>
-                                        </h2>
-                                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                After logging in, go to your student dashboard and use the upload section to select and upload your PDF files.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                                What file formats are supported?
-                                            </button>
-                                        </h2>
-                                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                Currently, we only support PDF files. Make sure your documents are in PDF format before uploading.
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                                                How do I verify my email?
-                                            </button>
-                                        </h2>
-                                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                            <div class="accordion-body">
-                                                After registration, check your email for a verification link. Click the link to activate your account.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <a href="/login" class="btn btn-primary">
-                                <i class="fas fa-arrow-left me-2"></i>Back to Login
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<body>
+  <div class="container">
+    <!-- Back Button -->
+    <a href="/login" class="btn btn-back mt-3">
+      <i class="fas fa-arrow-left me-2"></i> Back to Home
+    </a>
+
+    <!-- Contact Card -->
+    <div class="contact-card">
+      <h2 class="section-title"><i class="fas fa-envelope-open-text me-2"></i>Contact Us</h2>
+
+      <div class="row g-4 mb-4">
+        <!-- Email -->
+        <div class="col-md-4">
+          <div class="info-box">
+            <i class="fas fa-envelope"></i>
+            <h5>Email</h5>
+            <p class="text-muted">printtech030225@gmail.com</p>
+          </div>
         </div>
+
+        <!-- Phone -->
+        <div class="col-md-4">
+          <div class="info-box">
+            <i class="fas fa-phone"></i>
+            <h5>Phone</h5>
+            <p class="text-muted">+91 7678023772</p>
+          </div>
+        </div>
+
+        <!-- Hours -->
+        <div class="col-md-4">
+          <div class="info-box">
+            <i class="fas fa-clock"></i>
+            <h5>Business Hours</h5>
+            <p class="text-muted">Mon - Sat<br>8:00 AM - 6:00 PM</p>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="col-md-6">
+          <div class="info-box">
+            <i class="fas fa-map-marker-alt"></i>
+            <h5>Address</h5>
+            <p class="text-muted">
+              TCET, A-Block, Gate No 5,<br>
+              Thakur Educational Campus,<br>
+              Kandivali East, Mumbai,<br>
+              Maharashtra 400101
+            </p>
+          </div>
+        </div>
+
+        <!-- Developer -->
+        <div class="col-md-6">
+          <div class="info-box">
+            <i class="fas fa-user-cog"></i>
+            <h5>Developer</h5>
+            <p class="text-muted">
+              <strong>Amankumar Mishra</strong><br>
+              Design & Developed by Print For You<br>
+              <i class="fas fa-envelope me-2"></i> printtech030225@gmail.com
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Footer -->
+    <footer>
+      <p>&copy; 2024 Print For You. All rights reserved. | Designed & Developed by Amankumar Mishra</p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
