@@ -10,7 +10,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"branch", "division", "rollNumber"}, 
+        name = "uk_branch_division_rollnumber"),
+    @UniqueConstraint(columnNames = {"email"}, 
+        name = "uk_user_email")
+})
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +37,6 @@ public class User {
     private String division;
 
     @NotBlank(message = "Roll number is required")
-    @Column(unique = true)
     private String rollNumber;
 
     @NotBlank(message = "Phone number is required")

@@ -58,11 +58,13 @@ public class PdfUploadService {
             // Upload to GitHub
             String githubPath = gitHubStorageService.uploadFile(file, uniqueFilename, batch);
             
-            // Save to database with copy count
+            // Save to database with copy count and department info
             PdfUpload upload = new PdfUpload(
                 uniqueFilename,
                 originalFilename,
                 githubPath,
+                user.getBranch(),
+                user.getDivision(),
                 batch,
                 file.getSize(),
                 user,
@@ -97,8 +99,20 @@ public class PdfUploadService {
         pdfUploadRepository.delete(upload);
     }
 
+    public void clearBatchUploads(String branch, String division, String batch) {
+        List<PdfUpload> uploads = pdfUploadRepository.findByBranchAndDivisionAndBatchAndStatusOrderByUploadedAtAsc(
+            branch, division, batch, PdfUpload.Status.PENDING);
+        for (PdfUpload upload : uploads) {
+            upload.setStatus(PdfUpload.Status.PROCESSED);
+            pdfUploadRepository.save(upload);
+        }
+    }
+
+    // Legacy method - delegates to the new method
     public void clearBatchUploads(String batch) {
-        List<PdfUpload> uploads = pdfUploadRepository.findByBatchAndStatusOrderByUploadedAtAsc(batch, PdfUpload.Status.PENDING);
+        // This will process all pending uploads in the batch, regardless of branch/division
+        List<PdfUpload> uploads = pdfUploadRepository.findByBatchAndStatusOrderByUploadedAtAsc(
+            batch, PdfUpload.Status.PENDING);
         for (PdfUpload upload : uploads) {
             upload.setStatus(PdfUpload.Status.PROCESSED);
             pdfUploadRepository.save(upload);

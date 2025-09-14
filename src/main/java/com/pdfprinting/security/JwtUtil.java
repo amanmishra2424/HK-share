@@ -17,7 +17,7 @@ public class JwtUtil {
     private final Key key;
     private final long jwtExpirationMs;
 
-    public JwtUtil(@Value("${jwt.secret:changeitplease}") String secret,
+    public JwtUtil(@Value("${jwt.secret:Amankumar}") String secret,
                    @Value("${jwt.expiration-ms:86400000}") long jwtExpirationMs) {
         // Use the provided secret bytes as key material; fallback to random key if too short
         this.jwtExpirationMs = jwtExpirationMs;

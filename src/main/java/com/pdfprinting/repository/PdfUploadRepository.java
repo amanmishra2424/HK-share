@@ -10,8 +10,19 @@ import java.util.List;
 @Repository
 public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     List<PdfUpload> findByUserOrderByUploadedAtDesc(User user);
+    
+    // Find by branch, division, and batch
+    List<PdfUpload> findByBranchAndDivisionAndBatchAndStatusOrderByUploadedAtAsc(
+        String branch, String division, String batch, PdfUpload.Status status);
+    
+    // Legacy methods (updated to use branch and division)
     List<PdfUpload> findByBatchAndStatusOrderByUploadedAtAsc(String batch, PdfUpload.Status status);
     List<PdfUpload> findByBatchOrderByUploadedAtAsc(String batch);
+    
+    // Delete methods
+    void deleteByBranchAndDivisionAndBatchAndStatus(
+        String branch, String division, String batch, PdfUpload.Status status);
     void deleteByBatchAndStatus(String batch, PdfUpload.Status status);
+    
     List<PdfUpload> findByStatus(PdfUpload.Status status);
 }
