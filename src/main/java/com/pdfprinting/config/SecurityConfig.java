@@ -43,6 +43,9 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                // Payment routes - callback must be public, initiate requires student role
+                .requestMatchers("/payment/callback").permitAll()
+                .requestMatchers("/payment/**").hasRole("STUDENT")
                 // Role protected areas
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/student/**").hasRole("STUDENT")

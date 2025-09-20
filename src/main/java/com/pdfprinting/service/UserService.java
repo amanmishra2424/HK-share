@@ -25,6 +25,9 @@ public class UserService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private WalletService walletService;
+
     @Value("${admin.email}")
     private String adminEmail;
 
@@ -94,6 +97,9 @@ public class UserService {
             System.out.println("[DEBUG] Attempting to save user: branch='" + user.getBranch() + "', division='" + user.getDivision() + "', rollNumber='" + user.getRollNumber() + "', email='" + user.getEmail() + "'");
             User savedUser = userRepository.save(user);
 
+            // Create wallet for the new user
+            walletService.getOrCreateWallet(savedUser);
+
             // Send OTP email
             emailService.sendOtpEmail(savedUser);
 
@@ -142,6 +148,10 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
     }
 
     public void resendOtp(String email) throws Exception {

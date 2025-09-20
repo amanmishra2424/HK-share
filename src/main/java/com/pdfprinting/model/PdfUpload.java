@@ -1,7 +1,19 @@
 package com.pdfprinting.model;
 
-import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "pdf_uploads")
@@ -35,6 +47,12 @@ public class PdfUpload {
     private int copyCount = 1;
 
     @Column(nullable = false)
+    private int pageCount = 1; // Number of pages in PDF
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalCost = BigDecimal.ZERO; // Total cost for this upload
+
+    @Column(nullable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -61,7 +79,8 @@ public class PdfUpload {
     }
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String branch, String division, String batch, long fileSize, User user, int copyCount) {
+                     String branch, String division, String batch, long fileSize, User user, 
+                     int copyCount, int pageCount, BigDecimal totalCost) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
@@ -71,6 +90,8 @@ public class PdfUpload {
         this.fileSize = fileSize;
         this.user = user;
         this.copyCount = copyCount;
+        this.pageCount = pageCount;
+        this.totalCost = totalCost;
     }
 
     public String getBranch() { return branch; }
@@ -109,6 +130,12 @@ public class PdfUpload {
 
     public int getCopyCount() { return copyCount; }
     public void setCopyCount(int copyCount) { this.copyCount = copyCount; }
+
+    public int getPageCount() { return pageCount; }
+    public void setPageCount(int pageCount) { this.pageCount = pageCount; }
+
+    public BigDecimal getTotalCost() { return totalCost; }
+    public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
 
     public enum Status {
         PENDING, PROCESSED, DELETED

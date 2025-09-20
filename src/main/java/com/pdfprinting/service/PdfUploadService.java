@@ -1,18 +1,19 @@
 package com.pdfprinting.service;
 
-import com.pdfprinting.model.PdfUpload;
-import com.pdfprinting.model.User;
-import com.pdfprinting.repository.PdfUploadRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.User;
+import com.pdfprinting.repository.PdfUploadRepository;
 
 @Service
 public class PdfUploadService {
@@ -44,7 +45,8 @@ public class PdfUploadService {
             }
             
             // Validate file type
-            if (!file.getContentType().equals("application/pdf")) {
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.equals("application/pdf")) {
                 throw new Exception("Only PDF files are allowed");
             }
             
@@ -55,13 +57,22 @@ public class PdfUploadService {
             
             // Generate unique filename
             String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isEmpty()) {
+                throw new Exception("Invalid file name");
+            }
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
             
             // Upload to GitHub
             String githubPath = gitHubStorageService.uploadFile(file, uniqueFilename, batch);
             
-            // Save to database with copy count and department info
+            // Calculate billing info
+            int pageCount = 1; // Simplified: assume 1 page per PDF
+            BigDecimal totalCost = BigDecimal.valueOf(2).multiply(
+                BigDecimal.valueOf(pageCount).multiply(BigDecimal.valueOf(copyCount))
+            );
+            
+            // Save to database with copy count, billing info and department info
             PdfUpload upload = new PdfUpload(
                 uniqueFilename,
                 originalFilename,
@@ -71,7 +82,9 @@ public class PdfUploadService {
                 batch,
                 file.getSize(),
                 user,
-                copyCount
+                copyCount,
+                pageCount,
+                totalCost
             );
             
             pdfUploadRepository.save(upload);
@@ -165,5 +178,22 @@ public class PdfUploadService {
 
     public List<PdfUpload> getAllUploadsByStudent(Long userId) {
         return pdfUploadRepository.findByUserIdOrderByUploadedAtDesc(userId);
+    }
+
+    public PdfUpload getPdfById(Long id) {
+        return pdfUploadRepository.findById(id).orElse(null);
+    }
+
+    public int calculateTotalPages(MultipartFile[] files) throws Exception {
+        // For now, estimate 1 page per PDF file
+        // TODO: Implement actual PDF page counting using PDFBox or similar
+        int totalPages = 0;
+        for (MultipartFile file : files) {
+            String contentType = file.getContentType();
+            if (!file.isEmpty() && contentType != null && contentType.equals("application/pdf")) {
+                totalPages += 1; // Simplified: assume 1 page per PDF
+            }
+        }
+        return totalPages;
     }
 }
