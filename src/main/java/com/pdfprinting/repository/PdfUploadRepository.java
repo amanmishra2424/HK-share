@@ -25,4 +25,11 @@ public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     void deleteByBatchAndStatus(String batch, PdfUpload.Status status);
     
     List<PdfUpload> findByStatus(PdfUpload.Status status);
+    
+    // New methods for reporting and analytics
+    long countByUserIdAndBatch(Long userId, String batch);
+    long countByUserId(Long userId);
+    List<PdfUpload> findTop50ByOrderByUploadedAtDesc();
+    List<PdfUpload> findByBatchOrderByUploadedAtDesc(String batch);
+    List<PdfUpload> findByUserIdOrderByUploadedAtDesc(Long userId);
 }

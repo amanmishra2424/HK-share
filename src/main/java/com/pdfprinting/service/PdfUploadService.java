@@ -8,8 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class PdfUploadService {
@@ -121,5 +124,46 @@ public class PdfUploadService {
 
     public List<PdfUpload> getPendingUploads() {
         return pdfUploadRepository.findByStatus(PdfUpload.Status.PENDING);
+    }
+
+    public long getUploadCountByUserAndBatch(Long userId, String batch) {
+        return pdfUploadRepository.countByUserIdAndBatch(userId, batch);
+    }
+
+    public long getUploadCountByUser(Long userId) {
+        return pdfUploadRepository.countByUserId(userId);
+    }
+
+    public Map<String, Long> getMonthlyUploadStats() {
+        List<PdfUpload> allUploads = pdfUploadRepository.findAll();
+        return allUploads.stream()
+            .collect(Collectors.groupingBy(
+                upload -> upload.getUploadedAt().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                Collectors.counting()
+            ));
+    }
+
+    public Map<String, Map<String, Long>> getBatchStatistics() {
+        List<PdfUpload> allUploads = pdfUploadRepository.findAll();
+        return allUploads.stream()
+            .collect(Collectors.groupingBy(
+                PdfUpload::getBatch,
+                Collectors.groupingBy(
+                    upload -> upload.getStatus().toString(),
+                    Collectors.counting()
+                )
+            ));
+    }
+
+    public List<PdfUpload> getRecentUploads(int limit) {
+        return pdfUploadRepository.findTop50ByOrderByUploadedAtDesc();
+    }
+
+    public List<PdfUpload> getAllBatchUploads(String batch) {
+        return pdfUploadRepository.findByBatchOrderByUploadedAtDesc(batch);
+    }
+
+    public List<PdfUpload> getAllUploadsByStudent(Long userId) {
+        return pdfUploadRepository.findByUserIdOrderByUploadedAtDesc(userId);
     }
 }
