@@ -22,4 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Find users by branch, division, and optionally batch
     List<User> findByBranchAndDivision(String branch, String division);
     List<User> findByBranchAndDivisionAndBatch(String branch, String division, String batch);
+    
+    // Find users by batch and role
+    List<User> findByBatchAndRole(String batch, User.Role role);
+    List<User> findByRole(User.Role role);
 }

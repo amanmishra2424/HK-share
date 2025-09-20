@@ -1,15 +1,17 @@
 package com.pdfprinting.service;
 
-import com.pdfprinting.model.User;
-import com.pdfprinting.repository.UserRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.pdfprinting.model.User;
+import com.pdfprinting.repository.UserRepository;
 
 @Service
 public class UserService {
@@ -153,5 +155,21 @@ public class UserService {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
         emailService.sendOtpEmail(user);
+    }
+
+    public List<User> getStudentsByBatch(String batch) {
+        return userRepository.findByBatchAndRole(batch, User.Role.STUDENT);
+    }
+
+    public List<User> getAllStudents() {
+        return userRepository.findByRole(User.Role.STUDENT);
+    }
+
+    public User getStudentById(Long studentId) {
+        Optional<User> userOpt = userRepository.findById(studentId);
+        if (userOpt.isPresent() && userOpt.get().getRole() == User.Role.STUDENT) {
+            return userOpt.get();
+        }
+        return null;
     }
 }

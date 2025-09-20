@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Batch Report - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .admin-nav {
+            background: rgba(44, 62, 80, 0.9);
+        }
+        .content-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+        }
+        .header-card {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+            border-radius: 15px 15px 0 0;
+            padding: 2rem;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #1abc9c, #16a085);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .month-stat {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .upload-row:hover {
+            background-color: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark admin-nav">
+        <div class="container">
+            <a class="navbar-brand" href="/admin/dashboard">
+                <i class="fas fa-shield-alt me-2"></i>Admin Panel
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/admin/reports">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Reports
+                </a>
+                <a class="nav-link" href="/admin/dashboard">
+                    <i class="fas fa-home me-1"></i>Dashboard
+                </a>
+                <a class="btn btn-outline-light btn-sm" href="/logout">
+                    <i class="fas fa-sign-out-alt me-1"></i>Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="content-card">
+            <div class="header-card">
+                <h1 class="mb-2"><i class="fas fa-chart-pie me-2"></i><span th:text="${batchName}">Batch</span> Report</h1>
+                <p class="lead mb-0">Detailed analysis and statistics for this batch</p>
+            </div>
+            
+            <div class="card-body p-4">
+                <!-- Summary Statistics -->
+                <div class="row mb-5">
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3 th:text="${totalFiles}">0</h3>
+                            <p class="mb-0">Total Files</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3 th:text="${processedFiles}">0</h3>
+                            <p class="mb-0">Processed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3 th:text="${pendingFiles}">0</h3>
+                            <p class="mb-0">Pending</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3 th:text="${#numbers.formatDecimal(totalSizeMb, 1, 1)} + ' MB'">0.0 MB</h3>
+                            <p class="mb-0">Total Size</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Breakdown -->
+                <div class="row mb-5">
+                    <div class="col-12">
+                        <h3 class="mb-4"><i class="fas fa-calendar-alt me-2"></i>Monthly Breakdown</h3>
+                        <div class="row">
+                            <div th:each="entry : ${monthlyStats.entrySet()}" class="col-md-2 mb-3">
+                                <div class="month-stat">
+                                    <h5 th:text="${entry.value}">0</h5>
+                                    <small th:text="${entry.key}">2024-01</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div th:if="${#maps.isEmpty(monthlyStats)}" class="text-center py-4">
+                            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Monthly Data Available</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Upload List -->
+                <div class="row">
+                    <div class="col-12">
+                        <h3 class="mb-4"><i class="fas fa-list me-2"></i>All Uploads in This Batch</h3>
+                        
+                        <div th:if="${#lists.isEmpty(batchUploads)}" class="text-center py-5">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h4 class="text-muted">No Uploads Found</h4>
+                            <p class="text-muted">No files have been uploaded to this batch yet.</p>
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(batchUploads)}" class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th><i class="fas fa-file-pdf me-1"></i>File Name</th>
+                                        <th><i class="fas fa-user me-1"></i>Student</th>
+                                        <th><i class="fas fa-envelope me-1"></i>Email</th>
+                                        <th><i class="fas fa-id-card me-1"></i>Roll No.</th>
+                                        <th><i class="fas fa-hdd me-1"></i>Size</th>
+                                        <th><i class="fas fa-copy me-1"></i>Copies</th>
+                                        <th><i class="fas fa-info-circle me-1"></i>Status</th>
+                                        <th><i class="fas fa-calendar me-1"></i>Uploaded</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="upload : ${batchUploads}" class="upload-row">
+                                        <td>
+                                            <i class="fas fa-file-pdf text-danger me-2"></i>
+                                            <span th:text="${upload.originalFileName}">file.pdf</span>
+                                        </td>
+                                        <td th:text="${upload.user.name}">Student Name</td>
+                                        <td th:text="${upload.user.email}">email@example.com</td>
+                                        <td th:text="${upload.user.rollNumber}">ROLL123</td>
+                                        <td th:text="${#numbers.formatDecimal(upload.fileSize / 1024.0 / 1024.0, 1, 2)} + ' MB'">1.5 MB</td>
+                                        <td>
+                                            <span class="badge bg-info" th:text="${upload.copyCount}">1</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${upload.status.name() == 'PENDING'}" class="badge bg-warning">
+                                                <i class="fas fa-clock me-1"></i>Pending
+                                            </span>
+                                            <span th:if="${upload.status.name() == 'PROCESSED'}" class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Processed
+                                            </span>
+                                            <span th:if="${upload.status.name() == 'DELETED'}" class="badge bg-danger">
+                                                <i class="fas fa-trash me-1"></i>Deleted
+                                            </span>
+                                        </td>
+                                        <td th:text="${#temporals.format(upload.uploadedAt, 'dd MMM yyyy HH:mm')}">01 Jan 2024 10:30</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div th:if="${!#lists.isEmpty(batchUploads)}" class="mt-4 text-center">
+                            <a th:href="@{/admin/students/{batch}(batch=${batchName})}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-users me-1"></i>View Students in This Batch
+                            </a>
+                            <button class="btn btn-outline-secondary" onclick="window.print()">
+                                <i class="fas fa-print me-1"></i>Print Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
