@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::title}, ~{::content})}">
+<head>
+    <title th:text="${title}">My Wallet</title>
+</head>
+<body>
+    <div th:fragment="content">
+        <div class="container mt-4">
+            <!-- Wallet Balance Card -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-wallet me-2"></i>Wallet Balance
+                            </h5>
+                            <h2 class="card-text">₹<span th:text="${walletBalance}">0.00</span></h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-plus-circle me-2"></i>Add Money via Paytm
+                            </h5>
+                            <form th:action="@{/payment/initiate}" method="post">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" name="amount" 
+                                           placeholder="Enter amount" min="10" max="10000" step="1" required>
+                                    <button class="btn btn-success" type="submit">
+                                        <i class="fas fa-credit-card me-1"></i>Pay with Paytm
+                                    </button>
+                                </div>
+                            </form>
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                Secure payment via Paytm Gateway<br>
+                                Minimum: ₹10, Maximum: ₹10,000
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Messages -->
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <span th:text="${message}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Transaction History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(transactions)}" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <h5>No transactions yet</h5>
+                        <p>Your transaction history will appear here once you start using the wallet.</p>
+                    </div>
+
+                    <div th:if="${not #lists.isEmpty(transactions)}">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="transaction : ${transactions}">
+                                        <td th:text="${#temporals.format(transaction.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                        <td>
+                                            <span th:switch="${transaction.type}" class="badge">
+                                                <span th:case="'WALLET_TOPUP'" class="badge bg-success">Top-up</span>
+                                                <span th:case="'PDF_BILLING'" class="badge bg-warning">PDF Billing</span>
+                                                <span th:case="'REFUND'" class="badge bg-info">Refund</span>
+                                                <span th:case="*" class="badge bg-secondary" th:text="${transaction.type}">Other</span>
+                                            </span>
+                                        </td>
+                                        <td th:text="${transaction.description}">Transaction description</td>
+                                        <td>
+                                            <span th:switch="${transaction.type}" th:text="${transaction.amount}">
+                                                <span th:case="'WALLET_TOPUP'" class="text-success">+₹</span>
+                                                <span th:case="'REFUND'" class="text-success">+₹</span>
+                                                <span th:case="*" class="text-danger">-₹</span>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span th:switch="${transaction.status}" class="badge">
+                                                <span th:case="'COMPLETED'" class="badge bg-success">Completed</span>
+                                                <span th:case="'PENDING'" class="badge bg-warning">Pending</span>
+                                                <span th:case="'FAILED'" class="badge bg-danger">Failed</span>
+                                                <span th:case="*" class="badge bg-secondary" th:text="${transaction.status}">Unknown</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="mt-4">
+                <a href="/student/dashboard" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

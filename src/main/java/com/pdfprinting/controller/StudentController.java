@@ -15,9 +15,13 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.Transaction;
 import com.pdfprinting.model.User;
 import com.pdfprinting.service.PdfUploadService;
 import com.pdfprinting.service.UserService;
+import com.pdfprinting.service.WalletService;
+
+import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/student")
@@ -29,6 +33,9 @@ public class StudentController {
     @Autowired
     private PdfUploadService pdfUploadService;
 
+    @Autowired
+    private WalletService walletService;
+
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication, Model model) {
         String email = authentication.getName();
@@ -39,9 +46,13 @@ public class StudentController {
         }
 
         List<PdfUpload> uploads = pdfUploadService.getUserUploads(user);
+        BigDecimal walletBalance = walletService.getWalletBalance(user);
+        List<Transaction> recentTransactions = walletService.getRecentTransactions(user, 10);
         
         model.addAttribute("user", user);
         model.addAttribute("uploads", uploads);
+        model.addAttribute("walletBalance", walletBalance);
+        model.addAttribute("recentTransactions", recentTransactions);
         model.addAttribute("title", "Student Dashboard - PDF Printing System");
         
         return "student/dashboard";
@@ -68,9 +79,24 @@ public class StudentController {
         }
 
         try {
+            // Calculate total cost first
+            int totalPages = pdfUploadService.calculateTotalPages(files);
+            BigDecimal totalCost = walletService.calculateCost(totalPages, copyCount);
+            
+            // Check wallet balance
+            if (!walletService.hasAmountRequired(user, totalCost)) {
+                redirectAttributes.addFlashAttribute("error", 
+                    "Insufficient wallet balance. Required: ₹" + totalCost + ", Available: ₹" + 
+                    walletService.getWalletBalance(user));
+                return "redirect:/student/dashboard";
+            }
+            
+            // Process upload and deduct amount
             int uploadedCount = pdfUploadService.uploadPdfs(files, batch, user, copyCount);
+            walletService.deductMoney(user, totalCost, "PDF printing cost for " + uploadedCount + " files");
+            
             redirectAttributes.addFlashAttribute("message", 
-                uploadedCount + " PDF(s) uploaded successfully with " + copyCount + " copies each!");
+                uploadedCount + " PDF(s) uploaded successfully with " + copyCount + " copies each! ₹" + totalCost + " deducted from wallet.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", 
                 "Upload failed: " + e.getMessage());
@@ -93,13 +119,47 @@ public class StudentController {
         }
 
         try {
-            pdfUploadService.deletePdf(id, user);
-            redirectAttributes.addFlashAttribute("message", "PDF deleted successfully!");
+            // Get PDF details before deletion for refund
+            PdfUpload pdf = pdfUploadService.getPdfById(id);
+            if (pdf != null && pdf.getUser().equals(user) && 
+                pdf.getStatus() == PdfUpload.Status.PENDING) {
+                
+                // Refund money to wallet
+                BigDecimal refundAmount = pdf.getTotalCost();
+                walletService.refundMoney(user, refundAmount, "Refund for deleted PDF: " + pdf.getOriginalFileName());
+                
+                pdfUploadService.deletePdf(id, user);
+                redirectAttributes.addFlashAttribute("message", 
+                    "PDF deleted successfully! ₹" + refundAmount + " refunded to your wallet.");
+            } else {
+                pdfUploadService.deletePdf(id, user);
+                redirectAttributes.addFlashAttribute("message", "PDF deleted successfully!");
+            }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", 
                 "Delete failed: " + e.getMessage());
         }
 
         return "redirect:/student/dashboard";
+    }
+
+    @GetMapping("/wallet")
+    public String walletPage(Authentication authentication, Model model) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email).orElse(null);
+        
+        if (user == null) {
+            return "redirect:/login";
+        }
+
+        BigDecimal walletBalance = walletService.getWalletBalance(user);
+        List<Transaction> transactions = walletService.getAllTransactions(user);
+        
+        model.addAttribute("user", user);
+        model.addAttribute("walletBalance", walletBalance);
+        model.addAttribute("transactions", transactions);
+        model.addAttribute("title", "My Wallet - PDF Printing System");
+        
+        return "student/wallet";
     }
 }

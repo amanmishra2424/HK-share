@@ -127,6 +127,23 @@
       Manage your uploads & print queue
     </p>
 
+    <!-- Wallet Info -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="card bg-primary text-white">
+          <div class="card-body text-center">
+            <h5 class="card-title">
+              <i class="fas fa-wallet me-2"></i>Wallet Balance
+            </h5>
+            <h3 class="card-text">₹<span th:text="${walletBalance}">0.00</span></h3>
+            <a href="/student/wallet" class="btn btn-light btn-sm">
+              <i class="fas fa-plus me-1"></i>Add Money
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
       <!-- Alerts -->
       <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
