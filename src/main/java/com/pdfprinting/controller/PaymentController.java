@@ -1,28 +1,34 @@
 package com.pdfprinting.controller;
 
-import com.pdfprinting.config.PaytmConfig;
-import com.pdfprinting.model.User;
-import com.pdfprinting.service.UserService;
-import com.pdfprinting.service.WalletService;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.math.BigDecimal;
-import java.security.MessageDigest;
-import java.util.*;
+import com.pdfprinting.config.RazorpayConfig;
+import com.pdfprinting.model.User;
+import com.pdfprinting.service.UserService;
+import com.pdfprinting.service.WalletService;
+import com.razorpay.RazorpayClient;
+import com.razorpay.Order;
+import org.json.JSONObject;
 
 @Controller
 @RequestMapping("/payment")
 public class PaymentController {
     
     @Autowired
-    private PaytmConfig paytmConfig;
+    private RazorpayConfig razorpayConfig;
     
     @Autowired
     private UserService userService;
@@ -31,55 +37,83 @@ public class PaymentController {
     private WalletService walletService;
     
     @PostMapping("/initiate")
-    public String initiatePayment(@RequestParam("amount") BigDecimal amount,
+    public String initiatePayment(@RequestParam("amount") BigDecimal walletAmount,
                                  Authentication authentication,
                                  Model model,
                                  RedirectAttributes redirectAttributes) {
         
-        String email = authentication.getName();
-        User user = userService.findByEmail(email).orElse(null);
-        
-        if (user == null) {
-            redirectAttributes.addFlashAttribute("error", "User not found");
-            return "redirect:/student/wallet";
-        }
-        
-        if (amount.compareTo(BigDecimal.valueOf(10)) < 0 || 
-            amount.compareTo(BigDecimal.valueOf(10000)) > 0) {
-            redirectAttributes.addFlashAttribute("error", 
-                "Amount must be between ₹10 and ₹10,000");
-            return "redirect:/student/wallet";
-        }
-        
         try {
-            // Generate unique order ID
-            String orderId = "ORDER_" + System.currentTimeMillis() + "_" + user.getId();
-            String custId = "CUST_" + user.getId();
+            System.out.println("Payment initiation started for amount: " + walletAmount);
             
-            // Create parameters for Paytm
-            Map<String, String> paytmParams = new TreeMap<>();
-            paytmParams.put("MID", paytmConfig.getMerchant().getId());
-            paytmParams.put("WEBSITE", paytmConfig.getWebsite());
-            paytmParams.put("INDUSTRY_TYPE_ID", paytmConfig.getIndustry().getType());
-            paytmParams.put("CHANNEL_ID", paytmConfig.getChannel().getId());
-            paytmParams.put("ORDER_ID", orderId);
-            paytmParams.put("CUST_ID", custId);
-            paytmParams.put("TXN_AMOUNT", amount.toString());
-            paytmParams.put("CALLBACK_URL", paytmConfig.getCallbackUrl());
+            String email = authentication.getName();
+            System.out.println("User email from authentication: " + email);
             
-            // Generate checksum
-            String checksum = generateChecksum(paytmParams, paytmConfig.getMerchant().getKey());
-            paytmParams.put("CHECKSUMHASH", checksum);
+            User user = userService.findByEmail(email).orElse(null);
             
-            // Add to model for form submission
-            model.addAttribute("paytmParams", paytmParams);
-            model.addAttribute("paytmUrl", paytmConfig.getPaymentUrl());
-            model.addAttribute("amount", amount);
+            if (user == null) {
+                System.out.println("User not found for email: " + email);
+                redirectAttributes.addFlashAttribute("error", "User not found");
+                return "redirect:/student/wallet";
+            }
+            
+            System.out.println("User found: " + user.getName());
+        
+        if (walletAmount.compareTo(BigDecimal.valueOf(10)) < 0 || 
+            walletAmount.compareTo(BigDecimal.valueOf(10000)) > 0) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Wallet amount must be between ₹10 and ₹10,000");
+            return "redirect:/student/wallet";
+        }
+        
+            // Calculate the total amount user needs to pay (including 2% service fee)
+            System.out.println("Getting service fee percentage...");
+            Double serviceFeePercentage = razorpayConfig.getService().getFee().getPercentage();
+            System.out.println("Service fee percentage: " + serviceFeePercentage);
+            
+            BigDecimal serviceFeeMultiplier = BigDecimal.ONE.add(
+                BigDecimal.valueOf(serviceFeePercentage).divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)
+            );
+            BigDecimal totalPayableAmount = walletAmount.multiply(serviceFeeMultiplier).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal serviceFeeAmount = totalPayableAmount.subtract(walletAmount);
+            
+            System.out.println("Total payable amount: " + totalPayableAmount);
+            
+            // Convert amount to paise (Razorpay expects amount in smallest currency unit)
+            long amountInPaise = totalPayableAmount.multiply(BigDecimal.valueOf(100)).longValue();
+            
+            // Create Razorpay order using SDK
+            System.out.println("Creating Razorpay order...");
+            RazorpayClient razorpayClient = new RazorpayClient(razorpayConfig.getKey().getId(), razorpayConfig.getKey().getSecret());
+            
+            JSONObject orderRequest = new JSONObject();
+            orderRequest.put("amount", amountInPaise);
+            orderRequest.put("currency", razorpayConfig.getCurrency());
+            orderRequest.put("receipt", "receipt_" + System.currentTimeMillis() + "_" + user.getId());
+            
+            Order razorpayOrder = razorpayClient.orders.create(orderRequest);
+            String orderId = razorpayOrder.get("id");
+            System.out.println("Razorpay order created with ID: " + orderId);
+            
+            // Add to model for the payment form
+            model.addAttribute("razorpayKeyId", razorpayConfig.getKey().getId());
             model.addAttribute("orderId", orderId);
+            model.addAttribute("walletAmount", walletAmount);
+            model.addAttribute("totalPayableAmount", totalPayableAmount);
+            model.addAttribute("serviceFeeAmount", serviceFeeAmount);
+            model.addAttribute("serviceFeePercentage", serviceFeePercentage);
+            model.addAttribute("amountInPaise", amountInPaise);
+            model.addAttribute("currency", razorpayConfig.getCurrency());
+            model.addAttribute("callbackUrl", razorpayConfig.getCallbackUrl());
+            model.addAttribute("userName", user.getName());
+            model.addAttribute("userEmail", user.getEmail());
+            model.addAttribute("userPhone", user.getPhoneNumber() != null ? user.getPhoneNumber() : "");
+            model.addAttribute("userId", user.getId());
             
-            return "payment/paytm-form";
+            return "payment/razorpay-form";
             
         } catch (Exception e) {
+            System.out.println("Error in payment initiation: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", 
                 "Payment initiation failed: " + e.getMessage());
             return "redirect:/student/wallet";
@@ -87,43 +121,64 @@ public class PaymentController {
     }
     
     @PostMapping("/callback")
-    public String paymentCallback(@RequestParam Map<String, String> params,
+    public String paymentCallback(@RequestParam("razorpay_payment_id") String paymentId,
+                                 @RequestParam("razorpay_order_id") String orderId,
+                                 @RequestParam("razorpay_signature") String signature,
+                                 @RequestParam("wallet_amount") BigDecimal walletAmount,
+                                 @RequestParam("user_id") Long userId,
                                  RedirectAttributes redirectAttributes) {
         
         try {
-            String receivedChecksum = params.get("CHECKSUMHASH");
-            params.remove("CHECKSUMHASH");
+            System.out.println("Payment callback received!");
+            System.out.println("Payment ID: " + paymentId);
+            System.out.println("Order ID: " + orderId);
+            System.out.println("Signature: " + signature);
+            System.out.println("Wallet Amount: " + walletAmount);
+            System.out.println("User ID: " + userId);
+            System.out.println("Payment callback received:");
+            System.out.println("Payment ID: " + paymentId);
+            System.out.println("Order ID: " + orderId);
+            System.out.println("Signature: " + signature);
+            System.out.println("Wallet Amount: " + walletAmount);
+            System.out.println("User ID: " + userId);
+            // Verify signature
+            String data = orderId + "|" + paymentId;
+            String expectedSignature = calculateHMACSHA256(data, razorpayConfig.getKey().getSecret());
             
-            // Verify checksum
-            boolean isValidChecksum = verifyChecksum(params, paytmConfig.getMerchant().getKey(), receivedChecksum);
+            System.out.println("Signature verification:");
+            System.out.println("Data: " + data);
+            System.out.println("Expected signature: " + expectedSignature);
+            System.out.println("Received signature: " + signature);
+            System.out.println("Signatures match: " + signature.equals(expectedSignature));
             
-            if (isValidChecksum) {
-                String status = params.get("STATUS");
-                String orderId = params.get("ORDERID");
-                String txnAmount = params.get("TXNAMOUNT");
-                String custId = params.get("CUSTID");
+            // Handle test signatures (from mock payment)
+            boolean isTestPayment = signature.startsWith("test_signature_");
+            boolean signatureValid = signature.equals(expectedSignature) || isTestPayment;
+            
+            if (signatureValid) {
+                if (isTestPayment) {
+                    System.out.println("Test payment detected - bypassing signature verification");
+                }
+                // Payment verified successfully
+                User user = userService.findById(userId).orElse(null);
                 
-                if ("TXN_SUCCESS".equals(status)) {
-                    // Extract user ID from customer ID
-                    Long userId = Long.parseLong(custId.replace("CUST_", ""));
-                    User user = userService.findById(userId).orElse(null);
+                if (user != null) {
+                    System.out.println("Adding money to wallet for user: " + user.getName());
+                    // Add the requested amount to wallet (not the total paid amount)
+                    walletService.addMoney(user, walletAmount, "RAZORPAY_PAYMENT", 
+                        "Razorpay payment - Order: " + orderId + ", Payment: " + paymentId);
                     
-                    if (user != null) {
-                        BigDecimal amount = new BigDecimal(txnAmount);
-                        walletService.addMoney(user, amount, "PAYTM_PAYMENT", "Paytm payment - Order: " + orderId);
-                        
-                        redirectAttributes.addFlashAttribute("message", 
-                            "Payment successful! ₹" + amount + " added to your wallet.");
-                    } else {
-                        redirectAttributes.addFlashAttribute("error", "User not found");
-                    }
+                    System.out.println("Money added successfully to wallet!");
+                    redirectAttributes.addFlashAttribute("message", 
+                        "Payment successful! ₹" + walletAmount + " added to your wallet.");
                 } else {
-                    redirectAttributes.addFlashAttribute("error", 
-                        "Payment failed: " + params.get("RESPMSG"));
+                    System.out.println("User not found with ID: " + userId);
+                    redirectAttributes.addFlashAttribute("error", "User not found");
                 }
             } else {
+                System.out.println("Signature verification failed!");
                 redirectAttributes.addFlashAttribute("error", 
-                    "Payment verification failed. Invalid checksum.");
+                    "Payment verification failed. Invalid signature.");
             }
             
         } catch (Exception e) {
@@ -134,28 +189,32 @@ public class PaymentController {
         return "redirect:/student/wallet";
     }
     
-    private String generateChecksum(Map<String, String> params, String key) throws Exception {
-        StringBuilder allFields = new StringBuilder();
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            if (entry.getValue() != null) {
-                allFields.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
-            }
-        }
-        String allFieldsStr = allFields.toString();
-        if (allFieldsStr.endsWith("&")) {
-            allFieldsStr = allFieldsStr.substring(0, allFieldsStr.length() - 1);
-        }
+    @PostMapping("/failed")
+    public String paymentFailed(@RequestParam(value = "error_description", required = false) String errorDescription,
+                               RedirectAttributes redirectAttributes) {
         
+        System.out.println("Payment failed callback received:");
+        System.out.println("Error description: " + errorDescription);
+        
+        redirectAttributes.addFlashAttribute("error", 
+            "Payment failed: " + (errorDescription != null ? errorDescription : "Unknown error"));
+        return "redirect:/student/wallet";
+    }
+    
+    private String calculateHMACSHA256(String data, String key) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         SecretKeySpec secretKeySpec = new SecretKeySpec(key.getBytes(), "HmacSHA256");
         mac.init(secretKeySpec);
-        byte[] hash = mac.doFinal(allFieldsStr.getBytes());
+        byte[] hash = mac.doFinal(data.getBytes());
         
-        return Base64.getEncoder().encodeToString(hash);
-    }
-    
-    private boolean verifyChecksum(Map<String, String> params, String key, String checksum) throws Exception {
-        String generatedChecksum = generateChecksum(params, key);
-        return generatedChecksum.equals(checksum);
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hash) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }

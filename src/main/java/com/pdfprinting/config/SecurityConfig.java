@@ -51,9 +51,20 @@ public class SecurityConfig {
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .anyRequest().authenticated()
             )
+            .formLogin(form -> form
+                .loginPage("/login")
+                .defaultSuccessUrl("/student/dashboard", true)
+                .failureUrl("/login?error=true")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout=true")
+                .permitAll()
+            )
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.disable())
-            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             .headers(headers -> headers
                 .frameOptions().disable()
                 .cacheControl().disable()
