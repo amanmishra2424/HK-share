@@ -12,4 +12,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByUserOrderByCreatedAtDesc(User user);
     List<Transaction> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Transaction> findTop20ByUserOrderByCreatedAtDesc(User user);
+    List<Transaction> findTop50ByOrderByCreatedAtDesc();
 }

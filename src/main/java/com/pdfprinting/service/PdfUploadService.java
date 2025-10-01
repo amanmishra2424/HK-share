@@ -1,5 +1,6 @@
 package com.pdfprinting.service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,11 +65,14 @@ public class PdfUploadService {
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
             
+            // Count actual PDF pages using PDFBox
+            int pageCount = countPdfPages(file);
+            
             // Upload to GitHub
             String githubPath = gitHubStorageService.uploadFile(file, uniqueFilename, batch);
             
-            // Calculate billing info
-            int pageCount = 1; // Simplified: assume 1 page per PDF
+            // Calculate billing info using actual page count
+            // Pricing: ₹2 per page per copy
             BigDecimal totalCost = BigDecimal.valueOf(2).multiply(
                 BigDecimal.valueOf(pageCount).multiply(BigDecimal.valueOf(copyCount))
             );
@@ -185,15 +190,33 @@ public class PdfUploadService {
     }
 
     public int calculateTotalPages(MultipartFile[] files) throws Exception {
-        // For now, estimate 1 page per PDF file
-        // TODO: Implement actual PDF page counting using PDFBox or similar
         int totalPages = 0;
         for (MultipartFile file : files) {
-            String contentType = file.getContentType();
-            if (!file.isEmpty() && contentType != null && contentType.equals("application/pdf")) {
-                totalPages += 1; // Simplified: assume 1 page per PDF
+            if (!file.isEmpty()) {
+                String contentType = file.getContentType();
+                if (contentType != null && contentType.equals("application/pdf")) {
+                    totalPages += countPdfPages(file);
+                }
             }
         }
         return totalPages;
+    }
+    
+    /**
+     * Count the actual number of pages in a PDF file using Apache PDFBox
+     * @param file the PDF file to analyze
+     * @return number of pages in the PDF
+     * @throws Exception if PDF cannot be read or processed
+     */
+    private int countPdfPages(MultipartFile file) throws Exception {
+        try (PDDocument document = PDDocument.load(file.getInputStream())) {
+            int pageCount = document.getNumberOfPages();
+            if (pageCount <= 0) {
+                throw new Exception("Invalid PDF: No pages found in " + file.getOriginalFilename());
+            }
+            return pageCount;
+        } catch (IOException e) {
+            throw new Exception("Failed to read PDF file: " + file.getOriginalFilename() + ". Error: " + e.getMessage());
+        }
     }
 }

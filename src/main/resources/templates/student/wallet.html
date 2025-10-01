@@ -138,6 +138,54 @@
                 </div>
             </div>
 
+            <!-- Refund Requests History -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-transfer me-2"></i>Refund Requests
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${#lists.isEmpty(refundRequests)}" class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <h5>No refund requests</h5>
+                        <p>Your refund/withdrawal requests will appear here.</p>
+                    </div>
+
+                    <div th:if="${not #lists.isEmpty(refundRequests)}">
+                        <div class="table-responsive">
+                            <table class="table table-striped align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Requested</th>
+                                        <th>Fee (2%)</th>
+                                        <th>Net Payout</th>
+                                        <th>UPI</th>
+                                        <th>Status</th>
+                                        <th>Reference</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="rr : ${refundRequests}">
+                                        <td th:text="${#temporals.format(rr.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                        <td>₹<span th:text="${rr.amountRequested}">0.00</span></td>
+                                        <td class="text-warning">₹<span th:text="${rr.feeAmount}">0.00</span></td>
+                                        <td class="text-success">₹<span th:text="${rr.netPayout}">0.00</span></td>
+                                        <td th:text="${rr.upiId}">upi@bank</td>
+                                        <td>
+                                            <span class="badge" th:classappend="${rr.status.name() == 'PENDING'} ? ' bg-warning' : (${rr.status.name() == 'PROCESSED'} ? ' bg-success' : (${rr.status.name() == 'REJECTED'} ? ' bg-danger' : ' bg-secondary'))" th:text="${rr.status}">PENDING</span>
+                                        </td>
+                                        <td th:text="${rr.payoutReference} ?: '-'">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <small class="text-muted"><i class="fas fa-info-circle me-1"></i>Refunds are processed manually and can take up to 7 working days after approval.</small>
+                    </div>
+                </div>
+            </div>
+
             <!-- Navigation -->
             <div class="mt-4">
                 <a href="/student/dashboard" class="btn btn-outline-primary">

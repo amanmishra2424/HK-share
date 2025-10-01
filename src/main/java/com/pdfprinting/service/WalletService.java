@@ -91,6 +91,34 @@ public class WalletService {
         }
     }
 
+    /**
+     * Withdraw money from wallet for manual refund/payouts (recorded as a deduction).
+     * Uses existing PDF_BILLING type to avoid DB enum compatibility issues; description/reference clarify it's a withdrawal.
+     */
+    @Transactional
+    public boolean withdrawMoney(User user, BigDecimal amount, String description, String referenceId) {
+        try {
+            Wallet wallet = getOrCreateWallet(user);
+            if (wallet.deductAmount(amount)) {
+                walletRepository.save(wallet);
+
+                Transaction transaction = new Transaction(
+                        user,
+                        Transaction.TransactionType.PDF_BILLING, // treat as deduction; description marks as withdrawal
+                        amount.negate(),
+                        wallet.getBalance(),
+                        description != null ? description : "Wallet withdrawal"
+                );
+                transaction.setReferenceId(referenceId);
+                transactionRepository.save(transaction);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Transactional
     public boolean refundMoney(User user, BigDecimal amount, String description) {
         try {

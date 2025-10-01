@@ -15,9 +15,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.RefundRequest;
 import com.pdfprinting.model.Transaction;
 import com.pdfprinting.model.User;
 import com.pdfprinting.service.PdfUploadService;
+import com.pdfprinting.service.RefundService;
 import com.pdfprinting.service.UserService;
 import com.pdfprinting.service.WalletService;
 
@@ -36,6 +38,9 @@ public class StudentController {
     @Autowired
     private WalletService walletService;
 
+    @Autowired
+    private RefundService refundService;
+
     @GetMapping("/dashboard")
     public String dashboard(Authentication authentication, Model model) {
         String email = authentication.getName();
@@ -48,14 +53,38 @@ public class StudentController {
         List<PdfUpload> uploads = pdfUploadService.getUserUploads(user);
         BigDecimal walletBalance = walletService.getWalletBalance(user);
         List<Transaction> recentTransactions = walletService.getRecentTransactions(user, 10);
+        boolean hasPendingRefund = refundService.listByUser(user).stream()
+            .anyMatch(r -> r.getStatus() == RefundRequest.Status.PENDING);
         
         model.addAttribute("user", user);
         model.addAttribute("uploads", uploads);
         model.addAttribute("walletBalance", walletBalance);
         model.addAttribute("recentTransactions", recentTransactions);
+        model.addAttribute("hasPendingRefund", hasPendingRefund);
         model.addAttribute("title", "Student Dashboard - PDF Printing System");
         
         return "student/dashboard";
+    }
+
+    @PostMapping("/refund/request")
+    public String requestRefund(@RequestParam("amount") BigDecimal amount,
+                                @RequestParam("upiId") String upiId,
+                                @RequestParam(value = "reason", required = false) String reason,
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+        String email = authentication.getName();
+        User user = userService.findByEmail(email).orElse(null);
+        if (user == null) {
+            redirectAttributes.addFlashAttribute("error", "User not found");
+            return "redirect:/student/dashboard";
+        }
+        try {
+            refundService.createRequest(user, amount, upiId, reason);
+            redirectAttributes.addFlashAttribute("message", "Refund request submitted. A 2% processing fee applies, and processing may take up to 7 working days.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/student/dashboard";
     }
 
     @PostMapping("/upload")
@@ -154,10 +183,12 @@ public class StudentController {
 
         BigDecimal walletBalance = walletService.getWalletBalance(user);
         List<Transaction> transactions = walletService.getAllTransactions(user);
+        List<RefundRequest> refundRequests = refundService.listByUser(user);
         
         model.addAttribute("user", user);
         model.addAttribute("walletBalance", walletBalance);
         model.addAttribute("transactions", transactions);
+        model.addAttribute("refundRequests", refundRequests);
         model.addAttribute("title", "My Wallet - PDF Printing System");
         
         return "student/wallet";

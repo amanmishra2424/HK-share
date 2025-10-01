@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Transactions</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div th:replace="layout :: layout(~{::title}, ~{::section})">
+    <h2 th:fragment="title">Admin - Transaction Reports</h2>
+    <section th:fragment="section">
+        <div class="container">
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="card text-bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-uppercase text-muted">Total Topups</h6>
+                                    <h3 class="mb-0">₹ <span th:text="${totals['WALLET_TOPUP']}">0</span></h3>
+                                </div>
+                                <i class="fas fa-wallet fa-2x text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-uppercase text-muted">Total Billing</h6>
+                                    <h3 class="mb-0">₹ <span th:text="${totals['PDF_BILLING']}">0</span></h3>
+                                </div>
+                                <i class="fas fa-file-invoice-dollar fa-2x text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-uppercase text-muted">Total Refunds</h6>
+                                    <h3 class="mb-0">₹ <span th:text="${totals['REFUND']}">0</span></h3>
+                                </div>
+                                <i class="fas fa-rotate-left fa-2x text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-bg-light">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-uppercase text-muted">Net</h6>
+                                    <h3 class="mb-0">₹ <span th:text="${totals['NET']}">0</span></h3>
+                                </div>
+                                <i class="fas fa-scale-balanced fa-2x text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Transactions</h5>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Amount (₹)</th>
+                                <th>Status</th>
+                                <th>Reference</th>
+                                <th>Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="tx : ${recentTransactions}">
+                                <td th:text="${tx.id}">1</td>
+                                <td>
+                                    <span th:text="${tx.user != null ? tx.user.name : 'N/A'}">User Name</span>
+                                    <div class="text-muted small" th:text="${tx.user != null ? tx.user.email : ''}"></div>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${tx.type.name()=='WALLET_TOPUP' ? ' bg-success' : (tx.type.name()=='PDF_BILLING' ? ' bg-primary' : ' bg-warning text-dark') }" th:text="${tx.type}">PDF_BILLING</span>
+                                </td>
+                                <td th:text="${tx.amount}">0.00</td>
+                                <td>
+                                    <span class="badge" th:classappend="${tx.status.name()=='COMPLETED' ? ' bg-success' : (tx.status.name()=='PENDING' ? ' bg-secondary' : ' bg-danger') }" th:text="${tx.status}">COMPLETED</span>
+                                </td>
+                                <td th:text="${tx.referenceId}">ref</td>
+                                <td th:text="${#temporals.format(tx.createdAt, 'yyyy-MM-dd HH:mm')}">date</td>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(recentTransactions)}">
+                                <td colspan="7" class="text-center text-muted">No transactions found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

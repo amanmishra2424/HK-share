@@ -147,7 +147,12 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
       <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
-        <i class="fas fa-exclamation-circle me-2"></i><span th:text="${error}"></span>
+            <div class="col-md-4 mb-3">
+              <a href="/admin/transactions" class="btn btn-outline-success btn-lg">
+                <i class="fas fa-money-check-alt fa-2x d-block mb-2"></i>Transactions
+              </a>
+              <p class="text-muted mt-2">Wallet topups, billing and refunds</p>
+            </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
       <div th:if="${downloadReady}" class="alert alert-info alert-dismissible fade show">
@@ -214,6 +219,12 @@
               </button>
               <p class="text-muted mt-2">Reload to see latest data</p>
             </div>
+                <div class="col-md-4 mb-3">
+                  <a href="/admin/refunds" class="btn btn-outline-warning btn-lg">
+                    <i class="fas fa-money-bill-transfer fa-2x d-block mb-2"></i>Manage Refunds
+                  </a>
+                  <p class="text-muted mt-2">Approve or reject withdrawal requests</p>
+                </div>
           </div>
         </div>
       </div>

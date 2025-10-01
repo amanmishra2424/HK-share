@@ -36,7 +36,9 @@ public class UserService {
 
     public void initializeAdmin() {
         try {
-            if (!userRepository.existsByEmail(adminEmail)) {
+            Optional<User> existingAdmin = userRepository.findByEmail(adminEmail);
+            if (!existingAdmin.isPresent()) {
+                // Create new admin user
                 User admin = new User();
                 admin.setName("Administrator");
                 admin.setEmail(adminEmail);
@@ -51,7 +53,12 @@ public class UserService {
                 userRepository.save(admin);
                 System.out.println("Admin user created with email: " + adminEmail);
             } else {
-                System.out.println("Admin user already exists with email: " + adminEmail);
+                // Update existing admin password to match application.properties
+                User admin = existingAdmin.get();
+                String encodedPassword = passwordEncoder.encode(adminPassword);
+                admin.setPassword(encodedPassword);
+                userRepository.save(admin);
+                System.out.println("Admin user already exists with email: " + adminEmail + " - password updated");
             }
         } catch (Exception e) {
             System.err.println("Error initializing admin user: " + e.getMessage());
@@ -148,6 +155,25 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+    
+    /**
+     * Reset admin password manually (useful for debugging login issues)
+     */
+    public void resetAdminPassword() {
+        try {
+            Optional<User> adminUser = userRepository.findByEmail(adminEmail);
+            if (adminUser.isPresent()) {
+                User admin = adminUser.get();
+                admin.setPassword(passwordEncoder.encode(adminPassword));
+                userRepository.save(admin);
+                System.out.println("Admin password reset successfully for: " + adminEmail);
+            } else {
+                System.out.println("Admin user not found: " + adminEmail);
+            }
+        } catch (Exception e) {
+            System.err.println("Error resetting admin password: " + e.getMessage());
+        }
     }
 
     public Optional<User> findById(Long id) {

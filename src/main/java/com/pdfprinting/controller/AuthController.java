@@ -125,37 +125,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/login")
-    public String handleLogin(@RequestParam("username") String username,
-                              @RequestParam("password") String password,
-                              HttpServletResponse response,
-                              Model model,
-                              jakarta.servlet.http.HttpServletRequest request) {
-        try {
-            Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
-            String role = userDetails.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("STUDENT");
-            String token = jwtUtil.generateToken(username, role);
-
-                        long maxAge = 86400L;
-                        long expiryMs = Instant.now().toEpochMilli() + (maxAge * 1000L);
-                        String expires = ZonedDateTime.ofInstant(Instant.ofEpochMilli(expiryMs), ZoneId.of("GMT")).format(DateTimeFormatter.RFC_1123_DATE_TIME);
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("JWT=").append(token)
-                            .append("; Path=/; HttpOnly; Max-Age=").append(maxAge)
-                            .append("; Expires=").append(expires)
-                            .append("; SameSite=Lax");
-                        if (request.isSecure()) {
-                                sb.append("; Secure");
-                        }
-                        response.addHeader("Set-Cookie", sb.toString());
-
-            return "redirect:/dashboard";
-        } catch (Exception e) {
-            model.addAttribute("error", "Invalid email or password. Please make sure your email is verified.");
-            return "auth/login";
-        }
-    }
+    // POST /login handled by Spring Security formLogin (processing URL /perform_login)
 
     @PostMapping("/resend-otp")
     public String resendOtp(@RequestParam("email") String email, Model model) {
