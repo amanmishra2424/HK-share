@@ -141,12 +141,7 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JSON Library for Razorpay integration -->
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-            <version>20231013</version>
-        </dependency>
+        <!-- Duplicate JSON dependency removed - using version 20240303 above -->
 
         <dependency>
             <groupId>org.springframework.security</groupId>

@@ -171,6 +171,8 @@ public class PaymentController {
                     System.out.println("Money added successfully to wallet!");
                     redirectAttributes.addFlashAttribute("message", 
                         "Payment successful! ₹" + walletAmount + " added to your wallet.");
+                    // Redirect to student dashboard on success
+                    return "redirect:/student/dashboard";
                 } else {
                     System.out.println("User not found with ID: " + userId);
                     redirectAttributes.addFlashAttribute("error", "User not found");
@@ -186,6 +188,7 @@ public class PaymentController {
                 "Payment processing failed: " + e.getMessage());
         }
         
+        // On failure or missing user, go back to wallet page
         return "redirect:/student/wallet";
     }
     

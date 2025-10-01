@@ -99,8 +99,8 @@ public class Transaction {
     // Enums
     public enum TransactionType {
         WALLET_TOPUP,    // Adding money to wallet
-        PDF_BILLING,     // Payment for PDF upload
-        REFUND          // Refund for deleted PDF
+        PDF_BILLING,     // Payment for PDF upload or wallet deduction
+        REFUND           // Refund to wallet (adds to wallet)
     }
 
     public enum TransactionStatus {

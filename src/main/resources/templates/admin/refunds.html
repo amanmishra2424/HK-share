@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title}">Refund Requests - Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/admin/dashboard"><i class="fas fa-shield-alt me-2"></i>Admin Panel</a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/admin/dashboard"><i class="fas fa-arrow-left me-1"></i>Back to Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container my-4">
+    <h2 class="mb-4"><i class="fas fa-money-bill-transfer me-2"></i>Refund Requests</h2>
+    <div class="alert alert-warning">
+      Note: Refunds are processed manually and may take up to <strong>7 working days</strong>. Approve after you transfer the net payout to the student's UPI. Approval will deduct the requested amount from the student's wallet and record a transaction.
+    </div>
+
+    <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+      <span th:text="${message}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <span th:text="${error}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Requested (₹)</th>
+            <th>Wallet Balance (₹)</th>
+            <th>Fee 2% (₹)</th>
+            <th>Net Payout (₹)</th>
+            <th>UPI ID</th>
+            <th>Reason</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="req : ${pendingRefunds}">
+            <td th:text="${req.id}">1</td>
+            <td>
+              <div th:text="${req.user.name}">Student</div>
+              <small class="text-muted" th:text="${req.user.email}">email</small>
+            </td>
+            <td th:text="${req.amountRequested}">0.00</td>
+            <td>
+              <span th:with="bal=${walletBalances[req.user.id]}"
+                    th:classappend="${bal != null and bal.compareTo(req.amountRequested) < 0} ? 'text-danger fw-bold' : 'text-success'"
+                    th:text="${bal != null} ? ${bal} : 'N/A'">0.00</span>
+            </td>
+            <td th:text="${req.feeAmount}">0.00</td>
+            <td th:text="${req.netPayout}">0.00</td>
+            <td th:text="${req.upiId}">upi@bank</td>
+            <td><small th:text="${req.reason}">reason</small></td>
+            <td>
+              <form class="d-flex" method="post" th:action="@{'/admin/refunds/' + ${req.id} + '/approve'}">
+                <input class="form-control form-control-sm me-2" name="payoutReference" placeholder="UPI Ref / UTR" required>
+                <input class="form-control form-control-sm me-2" name="adminNote" placeholder="Note (optional)">
+                <button type="submit" class="btn btn-success btn-sm me-2"><i class="fas fa-check"></i></button>
+              </form>
+              <form class="d-inline" method="post" th:action="@{'/admin/refunds/' + ${req.id} + '/reject'}">
+                <input type="hidden" name="adminNote" value="Rejected by admin">
+                <button type="submit" class="btn btn-danger btn-sm mt-1"><i class="fas fa-times"></i></button>
+              </form>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(pendingRefunds)}">
+            <td colspan="8" class="text-center text-muted">No pending refund requests.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

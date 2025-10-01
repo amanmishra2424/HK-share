@@ -14,6 +14,11 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.pdfprinting.security.JwtAuthenticationFilter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.Authentication;
+import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
@@ -38,11 +43,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Public pages and registration flow
                 .requestMatchers("/register", "/verify-otp", "/resend-otp", "/terms", "/contact").permitAll()
-                .requestMatchers("/", "/login", "/logout").permitAll()
+                .requestMatchers("/", "/login", "/perform_login", "/logout").permitAll()
                 // Static resources and API endpoints
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+                // Debug endpoints (remove in production)
+                .requestMatchers("/debug-admin", "/admin-emergency-login").permitAll()
                 // Payment routes - callback must be public, initiate requires student role
                 .requestMatchers("/payment/callback").permitAll()
                 .requestMatchers("/payment/**").hasRole("STUDENT")
@@ -53,7 +60,9 @@ public class SecurityConfig {
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/student/dashboard", true)
+                // Use a dedicated processing URL so our controller's POST /login isn't in conflict
+                .loginProcessingUrl("/perform_login")
+                .successHandler(authenticationSuccessHandler())
                 .failureUrl("/login?error=true")
                 .permitAll()
             )
@@ -82,5 +91,21 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter();
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+        return new AuthenticationSuccessHandler() {
+            @Override
+            public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
+                boolean isAdmin = authentication.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+                if (isAdmin) {
+                    response.sendRedirect("/admin/dashboard");
+                } else {
+                    response.sendRedirect("/student/dashboard");
+                }
+            }
+        };
     }
 }
