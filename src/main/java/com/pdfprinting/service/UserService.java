@@ -47,6 +47,7 @@ public class UserService {
                 admin.setPhoneNumber("0000000000");
                 admin.setBatch("Admin");
                 admin.setDivision("Admin");
+                admin.setAcademicYear("N/A");
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(User.Role.ADMIN);
                 admin.setEmailVerified(true);
@@ -76,9 +77,11 @@ public class UserService {
         String branch = user.getBranch() == null ? "" : user.getBranch().trim();
         String division = user.getDivision() == null ? "" : user.getDivision().trim();
         String roll = user.getRollNumber() == null ? "" : user.getRollNumber().trim();
+    String academicYear = user.getAcademicYear() == null ? "" : user.getAcademicYear().trim();
         user.setBranch(branch);
         user.setDivision(division);
         user.setRollNumber(roll);
+    user.setAcademicYear(academicYear);
 
         // Check if roll number exists in the same branch and division
         try {

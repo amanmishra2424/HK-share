@@ -75,7 +75,7 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>User</th>
+                                <th>User / Year</th>
                                 <th>Type</th>
                                 <th>Amount (₹)</th>
                                 <th>Status</th>
@@ -89,6 +89,9 @@
                                 <td>
                                     <span th:text="${tx.user != null ? tx.user.name : 'N/A'}">User Name</span>
                                     <div class="text-muted small" th:text="${tx.user != null ? tx.user.email : ''}"></div>
+                                    <div class="small" th:if="${tx.user != null}">
+                                        <span class="badge text-bg-secondary" th:text="${tx.user.academicYear + ' / ' + tx.user.branch + ' / ' + tx.user.division + ' / ' + tx.user.batch}">1st / CSE / A / Batch 1</span>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge" th:classappend="${tx.type.name()=='WALLET_TOPUP' ? ' bg-success' : (tx.type.name()=='PDF_BILLING' ? ' bg-primary' : ' bg-warning text-dark') }" th:text="${tx.type}">PDF_BILLING</span>

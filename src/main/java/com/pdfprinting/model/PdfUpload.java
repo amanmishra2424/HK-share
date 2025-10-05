@@ -41,6 +41,9 @@ public class PdfUpload {
     private String division;
 
     @Column(nullable = false)
+    private String academicYear; // Year of the student at upload time (denormalized)
+
+    @Column(nullable = false)
     private long fileSize;
 
     @Column(nullable = false)
@@ -66,12 +69,13 @@ public class PdfUpload {
     public PdfUpload() {}
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String branch, String division, String batch, long fileSize, User user) {
+                     String branch, String division, String academicYear, String batch, long fileSize, User user) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
         this.branch = branch;
         this.division = division;
+        this.academicYear = academicYear;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
@@ -79,13 +83,14 @@ public class PdfUpload {
     }
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String branch, String division, String batch, long fileSize, User user, 
+                     String branch, String division, String academicYear, String batch, long fileSize, User user, 
                      int copyCount, int pageCount, BigDecimal totalCost) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
         this.branch = branch;
         this.division = division;
+        this.academicYear = academicYear;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
@@ -99,6 +104,9 @@ public class PdfUpload {
 
     public String getDivision() { return division; }
     public void setDivision(String division) { this.division = division; }
+
+    public String getAcademicYear() { return academicYear; }
+    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
 
     // Getters and Setters
     public Long getId() { return id; }
