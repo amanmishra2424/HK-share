@@ -37,7 +37,7 @@
         <thead class="table-dark">
           <tr>
             <th>ID</th>
-            <th>User</th>
+            <th>User / Year</th>
             <th>Requested (₹)</th>
             <th>Wallet Balance (₹)</th>
             <th>Fee 2% (₹)</th>
@@ -52,7 +52,8 @@
             <td th:text="${req.id}">1</td>
             <td>
               <div th:text="${req.user.name}">Student</div>
-              <small class="text-muted" th:text="${req.user.email}">email</small>
+              <small class="text-muted d-block" th:text="${req.user.email}">email</small>
+              <small class="badge text-bg-secondary" th:text="${req.user.academicYear + ' / ' + req.user.branch + ' / ' + req.user.division + ' / ' + req.user.batch}">1st / CSE / A / Batch 1</small>
             </td>
             <td th:text="${req.amountRequested}">0.00</td>
             <td>

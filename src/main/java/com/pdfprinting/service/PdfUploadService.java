@@ -84,6 +84,7 @@ public class PdfUploadService {
                 githubPath,
                 user.getBranch(),
                 user.getDivision(),
+                user.getAcademicYear(),
                 batch,
                 file.getSize(),
                 user,
@@ -161,17 +162,24 @@ public class PdfUploadService {
             ));
     }
 
+    /**
+     * Group statistics by composite key: Year|Branch|Division|Batch -> Status counts
+     */
     public Map<String, Map<String, Long>> getBatchStatistics() {
         List<PdfUpload> allUploads = pdfUploadRepository.findAll();
         return allUploads.stream()
             .collect(Collectors.groupingBy(
-                PdfUpload::getBatch,
-                Collectors.groupingBy(
-                    upload -> upload.getStatus().toString(),
-                    Collectors.counting()
-                )
+                upload -> String.join("|",
+                    safe(upload.getAcademicYear()),
+                    safe(upload.getBranch()),
+                    safe(upload.getDivision()),
+                    safe(upload.getBatch())
+                ),
+                Collectors.groupingBy(u -> u.getStatus().toString(), Collectors.counting())
             ));
     }
+
+    private String safe(String v) { return v == null ? "" : v; }
 
     public List<PdfUpload> getRecentUploads(int limit) {
         return pdfUploadRepository.findTop50ByOrderByUploadedAtDesc();

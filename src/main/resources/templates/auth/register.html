@@ -162,6 +162,18 @@
 
       <div class="row">
         <div class="col-md-6 mb-3">
+          <select class="form-select" id="academicYear" th:field="*{academicYear}" required>
+            <option value="">Select Year</option>
+            <option value="1st">1st Year</option>
+            <option value="2nd">2nd Year</option>
+            <option value="3rd">3rd Year</option>
+            <option value="4th">4th Year</option>
+          </select>
+          <div th:if="${#fields.hasErrors('academicYear')}" class="text-danger small mt-1">
+            <span th:errors="*{academicYear}"></span>
+          </div>
+        </div>
+        <div class="col-md-6 mb-3">
           <select class="form-select" id="division" th:field="*{division}" required>
             <option value="">Select Division</option>
             <option value="A">A</option>

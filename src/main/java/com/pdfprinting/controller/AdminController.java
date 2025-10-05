@@ -41,26 +41,29 @@ public class AdminController {
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        // Build hierarchy from pending uploads: department -> division -> batch -> count
+        // Build hierarchy: year -> branch -> division -> batch -> count
         List<PdfUpload> pending = pdfUploadService.getPendingUploads();
 
-        Map<String, Map<String, Map<String, Long>>> hierarchy = new java.util.LinkedHashMap<>();
+        Map<String, Map<String, Map<String, Map<String, Long>>>> hierarchy = new java.util.LinkedHashMap<>();
 
         for (PdfUpload upload : pending) {
             User user = upload.getUser();
             if (user == null) continue;
-            String dept = user.getBranch() == null ? "Unknown Department" : user.getBranch();
-            String div = user.getDivision() == null ? "Unknown Division" : user.getDivision();
+            String year = user.getAcademicYear() == null ? "Unknown Year" : user.getAcademicYear();
+            String branch = user.getBranch() == null ? "Unknown Branch" : user.getBranch();
+            String division = user.getDivision() == null ? "Unknown Division" : user.getDivision();
             String batch = upload.getBatch() == null ? "Unknown Batch" : upload.getBatch();
 
-            hierarchy.computeIfAbsent(dept, d -> new java.util.LinkedHashMap<>())
-                     .computeIfAbsent(div, d -> new java.util.LinkedHashMap<>())
-                     .merge(batch, 1L, Long::sum);
+            hierarchy
+                .computeIfAbsent(year, y -> new java.util.LinkedHashMap<>())
+                .computeIfAbsent(branch, b -> new java.util.LinkedHashMap<>())
+                .computeIfAbsent(division, d -> new java.util.LinkedHashMap<>())
+                .merge(batch, 1L, Long::sum);
         }
 
         long totalPending = pending.size();
 
-        model.addAttribute("hierarchy", hierarchy);
+    model.addAttribute("hierarchy", hierarchy);
         model.addAttribute("totalPending", totalPending);
         model.addAttribute("title", "Admin Dashboard - PDF Printing System");
         

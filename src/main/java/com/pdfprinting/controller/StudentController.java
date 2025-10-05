@@ -89,7 +89,6 @@ public class StudentController {
 
     @PostMapping("/upload")
     public String uploadPdfs(@RequestParam("files") MultipartFile[] files,
-                            @RequestParam("batch") String batch,
                             @RequestParam(value = "copyCount", defaultValue = "1") int copyCount,
                             Authentication authentication,
                             RedirectAttributes redirectAttributes) {
@@ -121,6 +120,8 @@ public class StudentController {
             }
             
             // Process upload and deduct amount
+            // Always use the student's registered batch (auto-assigned) rather than a user-provided value
+            String batch = user.getBatch();
             int uploadedCount = pdfUploadService.uploadPdfs(files, batch, user, copyCount);
             walletService.deductMoney(user, totalCost, "PDF printing cost for " + uploadedCount + " files");
             

@@ -179,23 +179,11 @@
             <input type="number" class="form-control" name="copyCount" id="copyCount" value="1" min="1" max="50" required>
             <div class="form-text text-info">
               <i class="fas fa-info-circle me-1"></i>
-              <strong>Pricing:</strong> ₹2 per page per copy. Total cost will be calculated based on actual PDF pages.
+                <strong>Pricing:</strong> ₹2 per page per copy. Your registered batch <strong th:text="${user.batch}"></strong> will be used automatically.
             </div>
           </div>
 
-          <div class="mb-4">
-            <label for="batch" class="form-label"><i class="fas fa-users me-1"></i>Select Batch</label>
-            <select class="form-select" name="batch" id="batch" required>
-              <option value="" disabled>Choose batch for upload</option>
-              <option th:value="${user.batch}" th:text="${user.batch}" th:selected="true"></option>
-              <option value="Batch 1">Batch 1</option>
-              <option value="Batch 2">Batch 2</option>
-              <option value="Batch 3">Batch 3</option>
-              <option value="Batch 4">Batch 4</option>
-              <option value="Batch 5">Batch 5</option>
-            </select>
-            <div class="form-text">Your registered batch (<span th:text="${user.batch}"></span>) is pre-selected</div>
-          </div>
+          <input type="hidden" name="batch" th:value="${user.batch}" />
 
           <div class="d-grid">
             <button type="submit" class="btn btn-upload"><i class="fas fa-upload me-2"></i>Upload Files</button>

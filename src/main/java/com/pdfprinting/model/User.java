@@ -45,6 +45,10 @@ public class User {
     @NotBlank(message = "Batch is required")
     private String batch;
 
+    // New: Academic year (e.g., 1st, 2nd, 3rd, 4th)
+    @NotBlank(message = "Academic year is required")
+    private String academicYear;
+
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
@@ -102,6 +106,9 @@ public class User {
 
     public String getBatch() { return batch; }
     public void setBatch(String batch) { this.batch = batch; }
+
+    public String getAcademicYear() { return academicYear; }
+    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
