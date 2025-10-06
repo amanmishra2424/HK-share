@@ -45,6 +45,8 @@ public class SecurityConfig {
                 .requestMatchers("/register", "/verify-otp", "/resend-otp", "/terms", "/contact").permitAll()
                 .requestMatchers("/", "/login", "/perform_login", "/logout").permitAll()
                 // Static resources and API endpoints
+                 .requestMatchers("/ping").permitAll() 
+            
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()

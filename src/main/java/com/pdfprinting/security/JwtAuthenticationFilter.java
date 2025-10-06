@@ -2,6 +2,7 @@ package com.pdfprinting.security;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,12 +27,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    // ✅ Skip JWT filtering for public endpoints
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        List<String> excludedPaths = List.of(
+            "/ping",
+            "/login",
+            "/register",
+            
+            "/terms",
+            "/contact",
+            "/css/",
+            "/js/",
+            "/images/",
+            "/webjars/",
+            "/favicon.ico"
+        );
+
+        // Skip exact matches and prefixes like /css/, /js/, etc.
+        return excludedPaths.stream().anyMatch(path::startsWith);
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String token = null;
         String header = request.getHeader("Authorization");
+
         if (header != null && header.startsWith("Bearer ")) {
             token = header.substring(7);
         } else if (request.getCookies() != null) {
@@ -51,17 +75,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    var auth = new UsernamePasswordAuthenticationToken(userDetails, null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
+                    var auth = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                    );
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {
-                // invalid token -> ignore and continue (request will be unauthorized if required)
+                // Invalid token — ignore, request will continue unauthenticated
             }
         }
 
         filterChain.doFilter(request, response);
     }
 }
-
-
