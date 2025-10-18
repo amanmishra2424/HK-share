@@ -60,7 +60,7 @@ public class StudentController {
         model.addAttribute("walletBalance", walletBalance);
         model.addAttribute("recentTransactions", recentTransactions);
         model.addAttribute("hasPendingRefund", hasPendingRefund);
-        model.addAttribute("title", "Student Dashboard - PDF Printing System");
+        model.addAttribute("title", "Student Dashboard - Print For You");
         
         return "student/dashboard";
     }
@@ -196,7 +196,7 @@ public class StudentController {
         model.addAttribute("walletBalance", walletBalance);
         model.addAttribute("transactions", transactions);
         model.addAttribute("refundRequests", refundRequests);
-        model.addAttribute("title", "My Wallet - PDF Printing System");
+        model.addAttribute("title", "My Wallet - Print For You");
         
         return "student/wallet";
     }
