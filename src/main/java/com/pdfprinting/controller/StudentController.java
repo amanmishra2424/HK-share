@@ -1,5 +1,6 @@
 package com.pdfprinting.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,6 @@ import com.pdfprinting.service.PdfUploadService;
 import com.pdfprinting.service.RefundService;
 import com.pdfprinting.service.UserService;
 import com.pdfprinting.service.WalletService;
-
-import java.math.BigDecimal;
 
 @Controller
 @RequestMapping("/student")
@@ -103,6 +102,13 @@ public class StudentController {
 
         if (copyCount < 1 || copyCount > 50) {
             redirectAttributes.addFlashAttribute("error", "Copy count must be between 1 and 50");
+            return "redirect:/student/dashboard";
+        }
+
+        // Check if user has academicYear set
+        if (user.getAcademicYear() == null || user.getAcademicYear().isBlank()) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Your academic year is not set. Please contact support or register again to set your academic year before uploading PDFs.");
             return "redirect:/student/dashboard";
         }
 

@@ -39,6 +39,11 @@ public class PdfUploadService {
     }
 
     public int uploadPdfs(MultipartFile[] files, String batch, User user, int copyCount) throws Exception {
+        // Validate user has academicYear set
+        if (user.getAcademicYear() == null || user.getAcademicYear().isBlank()) {
+            throw new Exception("Your academic year is not set. Please update your profile before uploading PDFs.");
+        }
+        
         int uploadedCount = 0;
         
         for (MultipartFile file : files) {

@@ -41,7 +41,7 @@ public class PdfUpload {
     private String division;
 
     @Column(nullable = false)
-    private String academicYear; // Year of the student at upload time (denormalized)
+    private String academicYear; // Year of the student at upload time (denormalized, required for org
 
     @Column(nullable = false)
     private long fileSize;
