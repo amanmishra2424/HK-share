@@ -230,19 +230,19 @@ public class GitHubStorageService {
             GHRepository repository = github.getRepository(repositoryName);
             
             // Create uploads directory with README
-            String readmeContent = "# PDF Printing System - File Storage\n\n" +
+            String readmeContent = "# Print For You - File Storage\n\n" +
                                  "This directory contains uploaded PDF files organized by batch.\n\n" +
                                  "## Structure\n" +
                                  "- `uploads/batch-1/` - Files from Batch 1\n" +
                                  "- `uploads/batch-2/` - Files from Batch 2\n" +
                                  "- etc.\n\n" +
-                                 "Files are automatically managed by the PDF Printing System.";
+                                 "Files are automatically managed by the Print For You.";
             
             try {
                 repository.createContent()
                     .content(Base64.getEncoder().encodeToString(readmeContent.getBytes()))
                     .path("uploads/README.md")
-                    .message("Initialize PDF Printing System file storage")
+                    .message("Initialize Print For You file storage")
                     .commit();
                 
                 logger.info("Successfully initialized repository structure");

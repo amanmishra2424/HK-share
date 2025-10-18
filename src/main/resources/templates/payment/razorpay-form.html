@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(~{::title}, ~{::content})}">
 <head>
-    <title>Razorpay Payment - PDF Printing System</title>
+    <title>Razorpay Payment - Print For You</title>
 </head>
 <body>
     <div th:fragment="content">
@@ -81,7 +81,7 @@
                 "key": /*[[${razorpayKeyId}]]*/ "rzp_test_key",
                 "amount": /*[[${amountInPaise}]]*/ 10200,
                 "currency": /*[[${currency}]]*/ "INR",
-                "name": "PDF Printing System",
+                "name": "Print For You",
                 "description": "Wallet Top-up",
                 "order_id": /*[[${orderId}]]*/ "order_123",
                 "handler": function (response){

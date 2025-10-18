@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PDF Printing System has been successfully enhanced with:
+The Print For You has been successfully enhanced with:
 1. **OTP-based Email Verification** (prevents duplicate email issues)
 2. **Required Academic Year** (enables proper PDF organization by year/branch/batch)
 3. **Proper Error Handling** (all edge cases covered)

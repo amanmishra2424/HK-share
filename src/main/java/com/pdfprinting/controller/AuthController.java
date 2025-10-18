@@ -53,7 +53,7 @@ public class AuthController {
         if (logout != null) {
             model.addAttribute("message", "You have been logged out successfully.");
         }
-        model.addAttribute("title", "Login - PDF Printing System");
+        model.addAttribute("title", "Login - Print For You");
         return "auth/login";
     }
 

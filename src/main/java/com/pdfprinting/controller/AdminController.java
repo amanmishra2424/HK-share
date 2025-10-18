@@ -65,7 +65,7 @@ public class AdminController {
 
     model.addAttribute("hierarchy", hierarchy);
         model.addAttribute("totalPending", totalPending);
-        model.addAttribute("title", "Admin Dashboard - PDF Printing System");
+        model.addAttribute("title", "Admin Dashboard - Print For You");
         
         return "admin/dashboard";
     }
