@@ -7,8 +7,6 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -77,6 +75,7 @@ public class AuthController {
                 errorMessage = "Registration failed. Please verify your input or contact support.";
             }
             model.addAttribute("error", errorMessage);
+            model.addAttribute("user", user);  // Ensure user object is in model
             return "auth/register";
         }
     }

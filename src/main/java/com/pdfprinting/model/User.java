@@ -1,13 +1,24 @@
 package com.pdfprinting.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
@@ -36,6 +47,9 @@ public class User {
     @NotBlank(message = "Division is required")
     private String division;
 
+    @NotBlank(message = "Academic year is required")
+    private String academicYear;
+
     @NotBlank(message = "Roll number is required")
     private String rollNumber;
 
@@ -44,10 +58,6 @@ public class User {
 
     @NotBlank(message = "Batch is required")
     private String batch;
-
-    // New: Academic year (e.g., 1st, 2nd, 3rd, 4th)
-    @NotBlank(message = "Academic year is required")
-    private String academicYear;
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
@@ -85,6 +95,9 @@ public class User {
     public String getDivision() { return division; }
     public void setDivision(String division) { this.division = division; }
 
+    public String getAcademicYear() { return academicYear; }
+    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -106,9 +119,6 @@ public class User {
 
     public String getBatch() { return batch; }
     public void setBatch(String batch) { this.batch = batch; }
-
-    public String getAcademicYear() { return academicYear; }
-    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

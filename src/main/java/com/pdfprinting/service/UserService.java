@@ -10,6 +10,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.pdfprinting.model.PendingRegistration;
 import com.pdfprinting.model.User;
 import com.pdfprinting.repository.UserRepository;
 
@@ -28,6 +29,9 @@ public class UserService {
     @Autowired
     private WalletService walletService;
 
+    @Autowired
+    private PendingRegistrationService pendingRegistrationService;
+
     @Value("${admin.email}")
     private String adminEmail;
 
@@ -43,11 +47,11 @@ public class UserService {
                 admin.setName("Administrator");
                 admin.setEmail(adminEmail);
                 admin.setBranch("Admin");
+                admin.setDivision("Admin");
+                admin.setAcademicYear("Admin");
                 admin.setRollNumber("ADMIN001");
                 admin.setPhoneNumber("0000000000");
                 admin.setBatch("Admin");
-                admin.setDivision("Admin");
-                admin.setAcademicYear("N/A");
                 admin.setPassword(passwordEncoder.encode(adminPassword));
                 admin.setRole(User.Role.ADMIN);
                 admin.setEmailVerified(true);
@@ -69,19 +73,25 @@ public class UserService {
     }
 
     public User registerUser(User user) throws Exception {
-        // Check if email already exists
+        // Check if email already exists in database
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new Exception("Email already registered");
         }
+
+        // Check if there's a pending registration with same email
+        if (pendingRegistrationService.hasPendingRegistration(user.getEmail())) {
+            throw new Exception("Registration already in progress for this email. Please complete OTP verification or wait 10 minutes to register again.");
+        }
+
         // Normalize inputs (trim and uppercase branch/division) to avoid false duplicates
         String branch = user.getBranch() == null ? "" : user.getBranch().trim();
         String division = user.getDivision() == null ? "" : user.getDivision().trim();
+        String academicYear = user.getAcademicYear() == null ? "" : user.getAcademicYear().trim();
         String roll = user.getRollNumber() == null ? "" : user.getRollNumber().trim();
-    String academicYear = user.getAcademicYear() == null ? "" : user.getAcademicYear().trim();
         user.setBranch(branch);
         user.setDivision(division);
+        user.setAcademicYear(academicYear);
         user.setRollNumber(roll);
-    user.setAcademicYear(academicYear);
 
         // Check if roll number exists in the same branch and division
         try {
@@ -94,51 +104,96 @@ public class UserService {
         }
 
         // Encode password
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
 
         // Generate OTP for email verification
         String otp = String.valueOf(100000 + (int)(Math.random() * 900000)); // 6-digit OTP
-        user.setOtp(otp);
-        user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
-        user.setRole(User.Role.STUDENT);
+        LocalDateTime otpExpiry = LocalDateTime.now().plusMinutes(10);
 
         try {
-            // Debug log: show values being saved to help diagnose duplicate constraint
-            System.out.println("[DEBUG] Attempting to save user: branch='" + user.getBranch() + "', division='" + user.getDivision() + "', rollNumber='" + user.getRollNumber() + "', email='" + user.getEmail() + "'");
-            User savedUser = userRepository.save(user);
+            // Create a pending registration (NOT saved to database yet)
+            PendingRegistration pending = new PendingRegistration(
+                    user.getEmail(),
+                    user.getName(),
+                    branch,
+                    division,
+                    academicYear,
+                    roll,
+                    user.getPhoneNumber(),
+                    user.getBatch(),
+                    encodedPassword,
+                    otp,
+                    otpExpiry
+            );
 
-            // Create wallet for the new user
-            walletService.getOrCreateWallet(savedUser);
+            // Store in cache
+            pendingRegistrationService.savePendingRegistration(pending);
 
             // Send OTP email
-            emailService.sendOtpEmail(savedUser);
+            // Create a temporary user object just for email sending
+            User tempUser = new User();
+            tempUser.setEmail(user.getEmail());
+            tempUser.setName(user.getName());
+            tempUser.setOtp(otp);
+            emailService.sendOtpEmail(tempUser);
 
-            return savedUser;
-        } catch (DataIntegrityViolationException dive) {
-            // Translate common DB constraint errors to user-friendly messages
-            String msg = dive.getMostSpecificCause() != null ? dive.getMostSpecificCause().getMessage() : dive.getMessage();
-            if (msg != null && msg.contains("users.UKbav7qiaas16cr7jn0eb4n7fy0")) {
-                // unique index on branch+division+rollNumber violated
-                throw new Exception("Roll number '" + user.getRollNumber() + "' already exists in division " + user.getDivision() + " of " + user.getBranch() + " branch.");
-            }
-            // If DB says duplicate entry but index name not present, check fallback: global roll number
-            if (msg != null && msg.toLowerCase().contains("duplicate") || userRepository.existsByRollNumber(user.getRollNumber())) {
-                throw new Exception("Roll number '" + user.getRollNumber() + "' appears to be already registered in the same department and division. If you believe this is incorrect, please contact support.");
-            }
-            // Unknown data integrity issue
-            System.err.println("DataIntegrityViolation while saving user: " + msg);
-            throw new Exception("Failed to register user due to database constraint. Please verify your input or contact support.");
+            System.out.println("[DEBUG] Pending registration created for email: " + user.getEmail() + 
+                             " (NOT saved to database yet). Waiting for OTP verification...");
+
+            // Return the user object (not saved to DB, just for controller use)
+            user.setOtp(otp);
+            user.setOtpExpiry(otpExpiry);
+            return user;
+
+        } catch (Exception e) {
+            System.err.println("Error in registration process: " + e.getMessage());
+            throw new Exception("Registration failed. Please try again. Error: " + e.getMessage());
         }
     }
 
 
     public boolean verifyOtp(String email, String otp) {
+        // First, check if this is a pending registration
+        if (pendingRegistrationService.hasPendingRegistration(email)) {
+            boolean isValid = pendingRegistrationService.verifyOtpForPendingRegistration(email, otp);
+            if (isValid) {
+                // OTP is correct, now save the user to database
+                try {
+                    PendingRegistration pending = pendingRegistrationService.getPendingRegistration(email);
+                    User user = createUserFromPendingRegistration(pending);
+                    User savedUser = userRepository.save(user);
+
+                    // Create wallet for the new user
+                    walletService.getOrCreateWallet(savedUser);
+
+                    // Send welcome email
+                    try {
+                        emailService.sendWelcomeEmail(savedUser);
+                    } catch (Exception ignored) {}
+
+                    // Remove from pending registrations after successful save
+                    pendingRegistrationService.removePendingRegistration(email);
+
+                    System.out.println("[DEBUG] User successfully registered and verified: " + email);
+                    return true;
+                } catch (DataIntegrityViolationException dive) {
+                    System.err.println("Error saving verified user: " + dive.getMessage());
+                    // Don't remove pending registration, let user retry
+                    return false;
+                } catch (Exception e) {
+                    System.err.println("Error finalizing registration: " + e.getMessage());
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // Fall back to checking already registered users (for backward compatibility)
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             String entered = otp == null ? "" : otp.trim();
-            // Debug logging (temporary) - helps diagnose OTP issues
-            System.out.println("[DEBUG] Verifying OTP for " + email + ": storedOtp=" + user.getOtp() + ", entered=" + entered + ", expiry=" + user.getOtpExpiry());
+            System.out.println("[DEBUG] Verifying OTP for already-registered user " + email + ": storedOtp=" + user.getOtp() + ", entered=" + entered + ", expiry=" + user.getOtpExpiry());
 
             if (user.getOtp() != null && user.getOtpExpiry() != null &&
                 user.getOtp().equals(entered) && user.getOtpExpiry().isAfter(LocalDateTime.now())) {
@@ -154,6 +209,25 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    /**
+     * Create a User entity from pending registration data
+     */
+    private User createUserFromPendingRegistration(PendingRegistration pending) {
+        User user = new User();
+        user.setEmail(pending.getEmail());
+        user.setName(pending.getName());
+        user.setBranch(pending.getBranch());
+        user.setDivision(pending.getDivision());
+        user.setAcademicYear(pending.getAcademicYear());
+        user.setRollNumber(pending.getRollNumber());
+        user.setPhoneNumber(pending.getPhoneNumber());
+        user.setBatch(pending.getBatch());
+        user.setPassword(pending.getPassword()); // Already encoded
+        user.setRole(User.Role.STUDENT);
+        user.setEmailVerified(true); // Mark as verified since OTP was verified
+        return user;
     }
 
     public Optional<User> findByEmail(String email) {
@@ -184,9 +258,25 @@ public class UserService {
     }
 
     public void resendOtp(String email) throws Exception {
+        // First check if there's a pending registration
+        if (pendingRegistrationService.hasPendingRegistration(email)) {
+            String newOtp = String.valueOf(100000 + (int)(Math.random() * 900000));
+            pendingRegistrationService.resendOtpForPendingRegistration(email, newOtp);
+            
+            // Send OTP email
+            User tempUser = new User();
+            tempUser.setEmail(email);
+            tempUser.setOtp(newOtp);
+            emailService.sendOtpEmail(tempUser);
+            
+            System.out.println("[DEBUG] Resent OTP for pending registration: " + email);
+            return;
+        }
+
+        // Fall back to already registered users
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isEmpty()) {
-            throw new Exception("No user found with email: " + email);
+            throw new Exception("No pending or registered user found with email: " + email);
         }
         User user = userOpt.get();
         String otp = String.valueOf(100000 + (int)(Math.random() * 900000));
@@ -194,6 +284,7 @@ public class UserService {
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         userRepository.save(user);
         emailService.sendOtpEmail(user);
+        System.out.println("[DEBUG] Resent OTP for registered user: " + email);
     }
 
     public List<User> getStudentsByBatch(String batch) {
