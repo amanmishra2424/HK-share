@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎉 Welcome to Print For You</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #e0f7e9, #f4fdf8);
+            color: #333;
+            margin: 0;
+            padding: 40px 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            padding: 40px 35px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            max-width: 650px;
+            width: 100%;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: #2ecc71;
+            letter-spacing: 0.5px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #27ae60;
+            margin-top: 10px;
+        }
+
+        p {
+            font-size: 15px;
+            line-height: 1.7;
+            margin: 10px 0;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 35px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(39, 174, 96, 0.3);
+        }
+
+        .feature-section {
+            margin: 25px 0;
+        }
+
+        .feature-box {
+            background: #f8fdfb;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border-left: 5px solid #27ae60;
+            margin-bottom: 15px;
+            transition: transform 0.2s ease;
+        }
+
+        .feature-box:hover {
+            transform: translateX(5px);
+        }
+
+        .feature-box h4 {
+            margin: 0 0 5px;
+            color: #2c3e50;
+        }
+
+        .feature-box p {
+            margin: 0;
+            color: #555;
+            font-size: 14px;
+        }
+
+        ol {
+            padding-left: 20px;
+            margin-top: 15px;
+        }
+
+        ol li {
+            margin: 6px 0;
+        }
+
+        strong {
+            color: #27ae60;
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .footer p {
+            margin: 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🖨️ Print For You</div>
+            <h1>🎉 Account Activated Successfully!</h1>
+        </div>
+
+        <p>Dear <strong th:text="${user.name}">Student</strong>,</p>
+
+        <p>Welcome aboard! Your email has been verified and your account is now active. You can start using the <strong>Print For You</strong> system right away to make your printing experience fast and hassle-free.</p>
+
+        <div style="text-align: center;">
+            <a th:href="${loginUrl}" class="btn">🚀 Login to Your Account</a>
+        </div>
+
+        <div class="feature-section">
+            <h3>✨ What you can do now:</h3>
+
+            <div class="feature-box">
+                <h4>📤 Upload PDF Files</h4>
+                <p>Easily upload your documents for printing — organized neatly by your batch.</p>
+            </div>
+
+            <div class="feature-box">
+                <h4>📋 Manage Your Queue</h4>
+                <p>Stay in control. Edit or remove files before processing anytime.</p>
+            </div>
+
+            <div class="feature-box">
+                <h4>📊 Track Your Print Status</h4>
+                <p>Get real-time updates on your uploaded files and their printing progress.</p>
+            </div>
+        </div>
+
+        <h3>🧭 Getting Started:</h3>
+        <ol>
+            <li>Login to your account using the button above.</li>
+            <li>Go to your <strong>student dashboard</strong>.</li>
+            <li>Upload your PDF files (max 10MB each).</li>
+            <li>Select your batch (default: <span th:text="${user.batch}">Batch 1</span>).</li>
+            <li>Sit back and relax while we process your files!</li>
+        </ol>
+
+        <p><strong>Note:</strong> Only PDF files are accepted for printing.</p>
+        <p>If you need any assistance, feel free to contact our support team — we’re here to help!</p>
+
+        <div class="footer">
+            <p>© 2024 <strong>Print For You</strong>. All rights reserved.</p>
+            <p>Making printing smarter, simpler, and faster. 💚</p>
+        </div>
+    </div>
+</body>
+</html>

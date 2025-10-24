@@ -3,19 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title th:text="${title}">Verify OTP - PDF Printing System</title>
+    <title th:text="${title}">Verify OTP - Print For You</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 2rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         }
         .otp-card {
             background: white;
             border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             overflow: hidden;
+            width: 100%;
+            max-width: 450px;
         }
         .otp-header {
             background: linear-gradient(135deg, #27ae60, #2ecc71);
@@ -23,61 +30,155 @@
             padding: 2rem;
             text-align: center;
         }
-        .btn-success {
-            background: linear-gradient(135deg, #27ae60, #2ecc71);
+        .otp-header h2 {
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .otp-header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.95;
+        }
+        .otp-content {
+            padding: 2rem;
+        }
+        .alert {
+            border-radius: 10px;
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
+        }
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 0.7rem;
         }
         .form-control {
             border-radius: 10px;
             padding: 12px 15px;
             border: 2px solid #e9ecef;
+            font-size: 1.1rem;
+            letter-spacing: 0.1em;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
         }
         .form-control:focus {
             border-color: #27ae60;
             box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
         }
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #229954, #27ae60);
+        }
+        .helper-text {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #e65100;
+        }
+        .info-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #eee;
+        }
+        .resend-btn {
+            background: white;
+            border: 2px solid #27ae60;
+            color: #27ae60;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        .resend-btn:hover {
+            background: #f0f7f0;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-5">
-                <div class="otp-card mt-5">
-                    <div class="otp-header">
-                        <h2 class="mb-0">
-                            <i class="fas fa-key me-2"></i>
-                            Email Verification
-                        </h2>
-                        <p class="mb-0 mt-2">Enter the OTP sent to your email to verify your account</p>
-                    </div>
-                    <div class="p-4">
-                        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <span th:text="${error}"></span>
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                        <form method="post" action="/verify-otp">
-                            <input type="hidden" name="email" th:value="${email}" />
-                            <div class="mb-3">
-                                <label for="otp" class="form-label">OTP</label>
-                                <input type="text" class="form-control" id="otp" name="otp" maxlength="6" required autofocus>
-                            </div>
-                            <button type="submit" class="btn btn-success w-100">Verify OTP</button>
-                        </form>
-                        <div class="mt-3 text-center">
-                            <small>Didn't receive the OTP? Please check your spam folder.</small>
-                        </div>
-                        <form method="post" action="/resend-otp" class="mt-3">
-                            <input type="hidden" name="email" th:value="${email}" />
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-outline-secondary">Resend OTP</button>
-                            </div>
-                        </form>
-                    </div>
+    <div class="otp-card">
+        <div class="otp-header">
+            <h2>
+                <i class="fas fa-shield-alt me-2"></i>
+                Email Verification
+            </h2>
+            <p>Enter the 6-digit OTP sent to your email</p>
+        </div>
+        
+        <div class="otp-content">
+            <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span th:text="${error}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <span th:text="${message}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            
+            <form method="post" action="/verify-otp">
+                <input type="hidden" name="email" th:value="${email}" />
+                
+                <div class="mb-3">
+                    <label for="otp" class="form-label">
+                        <i class="fas fa-key me-1"></i>OTP Code
+                    </label>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="otp" 
+                        name="otp" 
+                        maxlength="6" 
+                        inputmode="numeric"
+                        placeholder="000000"
+                        required 
+                        autofocus
+                    >
                 </div>
+                
+                <button type="submit" class="btn btn-success w-100" id="verifyBtn">
+                    <i class="fas fa-check-circle me-2"></i>Verify OTP
+                </button>
+            </form>
+            
+            <div class="helper-text">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> The OTP is valid for 10 minutes only. Do not share your OTP with anyone.
+            </div>
+            
+            <div class="info-section text-center">
+                <small class="text-muted">Didn't receive the OTP? Check your spam folder.</small>
+                
+                <form method="post" action="/resend-otp" class="mt-2">
+                    <input type="hidden" name="email" th:value="${email}" />
+                    <button type="submit" class="btn resend-btn">
+                        <i class="fas fa-redo me-1"></i>Resend OTP
+                    </button>
+                </form>
             </div>
         </div>
     </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Allow only numbers in OTP field
+        document.getElementById('otp').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+        
+        // Handle submit button
+        document.querySelector('form').addEventListener('submit', function() {
+            const btn = document.getElementById('verifyBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Verifying...';
+        });
+    </script>
 </body>
 </html>
