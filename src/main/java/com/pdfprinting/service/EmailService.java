@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -62,9 +63,9 @@ public class EmailService {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
                 
-                helper.setFrom(fromEmail, "PDF Printing System");
+                helper.setFrom(fromEmail, "Print For You");
                 helper.setTo(user.getEmail());
-                helper.setSubject("Welcome to PDF Printing System - Please Verify Your Email");
+                helper.setSubject("Welcome to Print For You - Please Verify Your Email");
                 
                 if (templateEngine != null) {
                     // Create template context
@@ -78,7 +79,7 @@ public class EmailService {
                     helper.setText(htmlContent, true);
                 } else {
                     // Fallback to plain text
-                    String textContent = "Welcome to PDF Printing System!\n\n" +
+                    String textContent = "Welcome to Print For You!\n\n" +
                                        "Please verify your email by clicking the following link:\n" +
                                        baseUrl + "/verify-email?token=" + user.getVerificationToken() + "\n\n" +
                                        "Thank you!";
@@ -123,7 +124,7 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(fromEmail, "PDF Printing System");
+            helper.setFrom(fromEmail, "Print For You");
             helper.setTo(fromEmail); // Send to admin
             helper.setSubject("Batch Processed: " + batchName + " (" + fileCount + " files)");
             
@@ -167,9 +168,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(fromEmail, "PDF Printing System");
+            helper.setFrom(fromEmail, "Print For You");
             helper.setTo(user.getEmail());
-            helper.setSubject("Welcome to PDF Printing System - Account Activated!");
+            helper.setSubject("Welcome to Print For You - Account Activated!");
             
             if (templateEngine != null) {
                 // Create template context
@@ -183,7 +184,7 @@ public class EmailService {
                 helper.setText(htmlContent, true);
             } else {
                 // Fallback to plain text
-                String textContent = "Welcome to PDF Printing System!\n\n" +
+                String textContent = "Welcome to Print For You!\n\n" +
                                    "Your account has been activated.\n\n" +
                                    "Please log in by clicking the following link:\n" +
                                    baseUrl + "/login\n\n" +
@@ -211,9 +212,9 @@ public class EmailService {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             
-            helper.setFrom(fromEmail, "PDF Printing System");
+            helper.setFrom(fromEmail, "Print For You");
             helper.setTo(user.getEmail());
-            helper.setSubject("PDF Printing System - Password Reset Request");
+            helper.setSubject("Print For You - Password Reset Request");
             
             if (templateEngine != null) {
                 // Create template context
@@ -255,7 +256,7 @@ public class EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(fromEmail); // Send test email to self
-            message.setSubject("PDF Printing System - Email Configuration Test");
+            message.setSubject("Print For You - Email Configuration Test");
             message.setText("This is a test email to verify that the email configuration is working correctly.\n\n" +
                           "If you receive this email, the email system is properly configured.\n\n" +
                           "Timestamp: " + java.time.LocalDateTime.now());
@@ -270,6 +271,7 @@ public class EmailService {
         }
     }
 
+    @Async
     public void sendOtpEmail(User user) {
         if (!isEmailConfigured()) {
             logger.warn("Email not configured. Skipping OTP email for user: {}", user.getEmail());
@@ -283,7 +285,7 @@ public class EmailService {
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setTo(user.getEmail());
                 message.setFrom(fromEmail);
-                message.setSubject("Your OTP for PDF Printing System Registration");
+                message.setSubject("Your OTP for Print For You Registration");
                 message.setText("Your OTP for registration is: " + user.getOtp() + "\nThis OTP is valid for 10 minutes.");
                 mailSender.send(message);
                 logger.info("OTP email sent to {}", user.getEmail());
@@ -311,7 +313,7 @@ public class EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(fromEmail); // Send to admin
-            message.setSubject("PDF Printing System - " + subject);
+            message.setSubject("Print For You - " + subject);
             message.setText(content + "\n\nTimestamp: " + java.time.LocalDateTime.now());
             
             mailSender.send(message);
