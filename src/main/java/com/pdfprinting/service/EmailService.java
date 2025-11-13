@@ -3,22 +3,24 @@
 // ...existing code...
 package com.pdfprinting.service;
 
-import com.pdfprinting.model.User;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import com.pdfprinting.model.User;
+
 import jakarta.mail.internet.MimeMessage;
-import java.util.List;
 
 @Service
 public class EmailService {
@@ -36,16 +38,41 @@ public class EmailService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${app.mail.from-address:${spring.mail.from:${spring.mail.username:}}}")
+    private String configuredFromEmail;
+
+    @Value("${app.mail.from-name:Print For You}")
+    private String fromName;
 
     @Value("${email.enabled:false}")
     private boolean emailEnabled;
 
     private boolean isEmailConfigured() {
-        return emailEnabled && mailSender != null && 
-               !fromEmail.equals("your-email@gmail.com") && 
-               !fromEmail.contains("${EMAIL_USERNAME");
+        if (!emailEnabled || mailSender == null) {
+            return false;
+        }
+
+        String fromAddress = resolveFromEmail();
+
+        return StringUtils.hasText(mailUsername) && !mailUsername.contains("${")
+                && StringUtils.hasText(fromAddress) && !fromAddress.contains("${")
+                && !"your-email@gmail.com".equalsIgnoreCase(fromAddress)
+                && !"no-reply@example.com".equalsIgnoreCase(fromAddress);
+    }
+
+    private String resolveFromEmail() {
+        if (StringUtils.hasText(configuredFromEmail) && !configuredFromEmail.contains("${")) {
+            return configuredFromEmail.trim();
+        }
+
+        if (StringUtils.hasText(mailUsername) && !mailUsername.contains("${")) {
+            return mailUsername.trim();
+        }
+
+        return "";
     }
 
     public void sendVerificationEmail(User user) {
@@ -62,8 +89,9 @@ public class EmailService {
                 
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-                
-                helper.setFrom(fromEmail, "Print For You");
+
+                String fromEmail = resolveFromEmail();
+                helper.setFrom(fromEmail, fromName);
                 helper.setTo(user.getEmail());
                 helper.setSubject("Welcome to Print For You - Please Verify Your Email");
                 
@@ -123,8 +151,9 @@ public class EmailService {
             
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
-            helper.setFrom(fromEmail, "Print For You");
+
+            String fromEmail = resolveFromEmail();
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(fromEmail); // Send to admin
             helper.setSubject("Batch Processed: " + batchName + " (" + fileCount + " files)");
             
@@ -167,8 +196,9 @@ public class EmailService {
             
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
-            helper.setFrom(fromEmail, "Print For You");
+
+            String fromEmail = resolveFromEmail();
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(user.getEmail());
             helper.setSubject("Welcome to Print For You - Account Activated!");
             
@@ -211,8 +241,9 @@ public class EmailService {
             
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
-            helper.setFrom(fromEmail, "Print For You");
+
+            String fromEmail = resolveFromEmail();
+            helper.setFrom(fromEmail, fromName);
             helper.setTo(user.getEmail());
             helper.setSubject("Print For You - Password Reset Request");
             
@@ -253,6 +284,8 @@ public class EmailService {
         try {
             logger.info("Testing email configuration...");
             
+            String fromEmail = resolveFromEmail();
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(fromEmail); // Send test email to self
@@ -282,6 +315,8 @@ public class EmailService {
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
                 logger.info("Sending OTP email to {} (attempt {}/{})", user.getEmail(), attempt, MAX_RETRIES);
+                String fromEmail = resolveFromEmail();
+
                 SimpleMailMessage message = new SimpleMailMessage();
                 message.setTo(user.getEmail());
                 message.setFrom(fromEmail);
@@ -310,6 +345,8 @@ public class EmailService {
         try {
             logger.info("Sending system notification: {}", subject);
             
+            String fromEmail = resolveFromEmail();
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(fromEmail); // Send to admin
