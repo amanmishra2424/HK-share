@@ -4,6 +4,7 @@
 package com.pdfprinting.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,17 +51,71 @@ public class EmailService {
     @Value("${email.enabled:false}")
     private boolean emailEnabled;
 
-    private boolean isEmailConfigured() {
-        if (!emailEnabled || mailSender == null) {
-            return false;
+    public void logEmailConfiguration() {
+        if (!logger.isInfoEnabled()) {
+            return;
         }
 
         String fromAddress = resolveFromEmail();
+        logger.info("Email configuration summary | enabled={} | mailSenderPresent={} | usernameConfigured={} | fromAddress={}",
+                emailEnabled,
+                mailSender != null,
+                StringUtils.hasText(mailUsername) && !isPlaceholder(mailUsername),
+                maskEmail(fromAddress));
+    }
 
-        return StringUtils.hasText(mailUsername) && !mailUsername.contains("${")
-                && StringUtils.hasText(fromAddress) && !fromAddress.contains("${")
-                && !"your-email@gmail.com".equalsIgnoreCase(fromAddress)
-                && !"no-reply@example.com".equalsIgnoreCase(fromAddress);
+    private boolean isEmailConfigured() {
+        return validateEmailConfiguration().isEmpty();
+    }
+
+    private Optional<String> validateEmailConfiguration() {
+        if (!emailEnabled) {
+            return Optional.of("EMAIL_ENABLED flag is false");
+        }
+
+        if (mailSender == null) {
+            return Optional.of("JavaMailSender bean is null (Spring mail not initialized)");
+        }
+
+        if (!StringUtils.hasText(mailUsername)) {
+            return Optional.of("spring.mail.username / BREVO_SMTP_USERNAME is empty");
+        }
+
+        if (isPlaceholder(mailUsername)) {
+            return Optional.of("spring.mail.username contains unresolved placeholder");
+        }
+
+        String fromAddress = resolveFromEmail();
+        if (!StringUtils.hasText(fromAddress)) {
+            return Optional.of("No sender address configured (APP_MAIL_FROM_ADDRESS / spring.mail.from)");
+        }
+
+        if (isPlaceholder(fromAddress)) {
+            return Optional.of("Sender address contains unresolved placeholder");
+        }
+
+        if ("your-email@gmail.com".equalsIgnoreCase(fromAddress) || "no-reply@example.com".equalsIgnoreCase(fromAddress)) {
+            return Optional.of("Sender address is still set to the default example address");
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isPlaceholder(String value) {
+        return value != null && value.contains("${");
+    }
+
+    private String maskEmail(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "<empty>";
+        }
+
+        int atIndex = value.indexOf('@');
+        if (atIndex <= 1) {
+            return "****";
+        }
+
+        return value.charAt(0) + "***" + value.substring(atIndex);
     }
 
     private String resolveFromEmail() {
@@ -76,8 +131,10 @@ public class EmailService {
     }
 
     public void sendVerificationEmail(User user) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping verification email for user: {}", user.getEmail());
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping verification email for user: {}",
+                    validationError.get(), user.getEmail());
             return;
         }
 
@@ -141,8 +198,10 @@ public class EmailService {
     }
 
     public void sendBatchProcessedNotification(String batchName, int fileCount, List<String> studentEmails) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping batch notification for: {}", batchName);
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping batch notification for: {}",
+                    validationError.get(), batchName);
             return;
         }
 
@@ -186,8 +245,10 @@ public class EmailService {
     }
 
     public void sendWelcomeEmail(User user) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping welcome email for user: {}", user.getEmail());
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping welcome email for user: {}",
+                    validationError.get(), user.getEmail());
             return;
         }
 
@@ -231,8 +292,10 @@ public class EmailService {
     }
 
     public void sendPasswordResetEmail(User user, String resetToken) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping password reset email for user: {}", user.getEmail());
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping password reset email for user: {}",
+                    validationError.get(), user.getEmail());
             return;
         }
 
@@ -276,8 +339,10 @@ public class EmailService {
     }
 
     public boolean testEmailConfiguration() {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Cannot test email configuration.");
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Cannot test email configuration.", validationError.get());
+            logEmailConfiguration();
             return false;
         }
 
@@ -306,8 +371,10 @@ public class EmailService {
 
     @Async
     public void sendOtpEmail(User user) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping OTP email for user: {}", user.getEmail());
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping OTP email for user: {}",
+                    validationError.get(), user.getEmail());
             return;
         }
 
@@ -337,8 +404,10 @@ public class EmailService {
     }
 
     public void sendSystemNotification(String subject, String content) {
-        if (!isEmailConfigured()) {
-            logger.warn("Email not configured. Skipping system notification: {}", subject);
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping system notification: {}",
+                    validationError.get(), subject);
             return;
         }
 

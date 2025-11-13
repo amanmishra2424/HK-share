@@ -21,6 +21,7 @@ public class EmailConfig implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         logger.info("Testing email configuration...");
+        emailService.logEmailConfiguration();
         
         if (emailService.testEmailConfiguration()) {
             logger.info("Email system is configured and working correctly");
