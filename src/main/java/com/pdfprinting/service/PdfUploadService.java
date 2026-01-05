@@ -30,6 +30,21 @@ public class PdfUploadService {
         return pdfUploadRepository.findByUserOrderByUploadedAtDesc(user);
     }
 
+    /**
+     * Get uploads from a specific container (academic_year, branch, division, semester, batch)
+     * This is the primary method for container-based retrieval
+     */
+    public List<PdfUpload> getContainerUploads(String academicYear, String branch, String division, 
+                                                String semester, String batch) {
+        return pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
+            academicYear, branch, division, semester, batch, PdfUpload.Status.PENDING);
+    }
+
+    /**
+     * Legacy method - get uploads by batch name only
+     * @deprecated Use getContainerUploads instead for proper container-based queries
+     */
+    @Deprecated
     public List<PdfUpload> getBatchUploads(String batch) {
         return pdfUploadRepository.findByBatchAndStatusOrderByUploadedAtAsc(batch, PdfUpload.Status.PENDING);
     }
@@ -39,9 +54,18 @@ public class PdfUploadService {
     }
 
     public int uploadPdfs(MultipartFile[] files, String batch, User user, int copyCount) throws Exception {
-        // Validate user has academicYear set
+        // Validate user has all container fields set
         if (user.getAcademicYear() == null || user.getAcademicYear().isBlank()) {
             throw new Exception("Your academic year is not set. Please update your profile before uploading PDFs.");
+        }
+        if (user.getSemester() == null || user.getSemester().isBlank()) {
+            throw new Exception("Your semester is not set. Please update your profile before uploading PDFs.");
+        }
+        if (user.getBranch() == null || user.getBranch().isBlank()) {
+            throw new Exception("Your branch is not set. Please update your profile before uploading PDFs.");
+        }
+        if (user.getDivision() == null || user.getDivision().isBlank()) {
+            throw new Exception("Your division is not set. Please update your profile before uploading PDFs.");
         }
         
         int uploadedCount = 0;
@@ -83,6 +107,7 @@ public class PdfUploadService {
             );
             
             // Save to database with copy count, billing info and department info
+            // Upload goes directly into the container defined by (academicYear, branch, division, semester, batch)
             PdfUpload upload = new PdfUpload(
                 uniqueFilename,
                 originalFilename,
@@ -90,6 +115,7 @@ public class PdfUploadService {
                 user.getBranch(),
                 user.getDivision(),
                 user.getAcademicYear(),
+                user.getSemester(),
                 batch,
                 file.getSize(),
                 user,
@@ -126,6 +152,24 @@ public class PdfUploadService {
         pdfUploadRepository.delete(upload);
     }
 
+    /**
+     * Mark all uploads in the container as PROCESSED
+     * Container is defined by (academicYear, branch, division, semester, batch)
+     */
+    public void clearContainerUploads(String academicYear, String branch, String division, 
+                                       String semester, String batch) {
+        List<PdfUpload> uploads = pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
+            academicYear, branch, division, semester, batch, PdfUpload.Status.PENDING);
+        for (PdfUpload upload : uploads) {
+            upload.setStatus(PdfUpload.Status.PROCESSED);
+            pdfUploadRepository.save(upload);
+        }
+    }
+
+    /**
+     * @deprecated Use clearContainerUploads instead
+     */
+    @Deprecated
     public void clearBatchUploads(String branch, String division, String batch) {
         List<PdfUpload> uploads = pdfUploadRepository.findByBranchAndDivisionAndBatchAndStatusOrderByUploadedAtAsc(
             branch, division, batch, PdfUpload.Status.PENDING);
@@ -135,7 +179,11 @@ public class PdfUploadService {
         }
     }
 
-    // Legacy method - delegates to the new method
+    /**
+     * Legacy method - marks all pending uploads with this batch name as processed
+     * @deprecated Use clearContainerUploads instead for proper container-based clearing
+     */
+    @Deprecated
     public void clearBatchUploads(String batch) {
         // This will process all pending uploads in the batch, regardless of branch/division
         List<PdfUpload> uploads = pdfUploadRepository.findByBatchAndStatusOrderByUploadedAtAsc(
@@ -168,7 +216,8 @@ public class PdfUploadService {
     }
 
     /**
-     * Group statistics by composite key: Year|Branch|Division|Batch -> Status counts
+     * Group statistics by composite key: Year|Branch|Division|Semester|Batch -> Status counts
+     * Container key format: academicYear|branch|division|semester|batch
      */
     public Map<String, Map<String, Long>> getBatchStatistics() {
         List<PdfUpload> allUploads = pdfUploadRepository.findAll();
@@ -178,6 +227,7 @@ public class PdfUploadService {
                     safe(upload.getAcademicYear()),
                     safe(upload.getBranch()),
                     safe(upload.getDivision()),
+                    safe(upload.getSemester()),
                     safe(upload.getBatch())
                 ),
                 Collectors.groupingBy(u -> u.getStatus().toString(), Collectors.counting())

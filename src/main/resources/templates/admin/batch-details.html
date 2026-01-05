@@ -56,17 +56,23 @@
         </div>
     </nav>
 
-    <!-- Batch Header -->
+    <!-- Container Header -->
     <div class="batch-header">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <h1 class="mb-2">
-                        <i class="fas fa-users me-3"></i><span th:text="${batchName}">Batch 1</span>
+                        <i class="fas fa-box me-3"></i>Container: <span th:text="${batch}">Batch 1</span>
                     </h1>
                     <p class="mb-0 lead">
-                        Review and manage PDF uploads for this batch
+                        <i class="fas fa-calendar-alt me-1"></i><span th:text="${academicYear}">Year</span> |
+                        <i class="fas fa-code-branch me-1"></i><span th:text="${branch}">Branch</span> |
+                        <i class="fas fa-users me-1"></i><span th:text="${division}">Division</span> |
+                        <i class="fas fa-book me-1"></i>Semester <span th:text="${semester}">1</span>
                     </p>
+                    <small class="text-white-50" th:if="${containerKey}">
+                        Container Key: <span th:text="${containerKey}"></span>
+                    </small>
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="bg-white rounded p-3 text-dark text-center">
@@ -96,12 +102,17 @@
         <div class="row mb-4">
             <div class="col-md-8">
                 <h3>
-                    <i class="fas fa-file-pdf me-2"></i>Uploaded Files
+                    <i class="fas fa-file-pdf me-2"></i>Uploaded Files (Ordered by Upload Time)
                 </h3>
             </div>
             <div class="col-md-4 text-end" th:if="${!#lists.isEmpty(uploads)}">
-            <form method="post" th:action="@{/admin/merge/{batch}(batch=${batchName})}" 
-                onsubmit="return confirm('Are you sure you want to merge all PDFs? This will clear the queue for this batch.')">
+                <form method="post" th:action="@{/admin/merge}" 
+                      onsubmit="return confirm('Are you sure you want to merge all PDFs? This will mark all uploads in this container as processed.')">
+                    <input type="hidden" name="academicYear" th:value="${academicYear}" />
+                    <input type="hidden" name="branch" th:value="${branch}" />
+                    <input type="hidden" name="division" th:value="${division}" />
+                    <input type="hidden" name="semester" th:value="${semester}" />
+                    <input type="hidden" name="batch" th:value="${batch}" />
                     <button type="submit" class="btn btn-merge">
                         <i class="fas fa-compress-arrows-alt me-2"></i>
                         Merge All PDFs (<span th:text="${#lists.size(uploads)}">0</span>)
@@ -116,7 +127,7 @@
                 <div th:if="${#lists.isEmpty(uploads)}" class="text-center py-5">
                     <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
                     <h4 class="text-muted">No pending uploads</h4>
-                    <p class="text-muted">There are no PDF files waiting to be processed in this batch.</p>
+                    <p class="text-muted">There are no PDF files waiting to be processed in this container.</p>
                     <a href="/admin/dashboard" class="btn btn-primary">
                         <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
                     </a>
@@ -128,7 +139,7 @@
                             <div class="col-md-1 text-center">
                                 <span class="badge bg-primary fs-6" th:text="${iterStat.count}">1</span>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <h6 class="mb-1">
                                     <i class="fas fa-file-pdf text-danger me-2"></i>
                                     <span th:text="${upload.originalFileName}">document.pdf</span>
@@ -140,9 +151,13 @@
                                 </small>
                             </div>
                             <div class="col-md-2">
-                                <small class="text-muted">
-                                    <i class="fas fa-graduation-cap me-1"></i>
-                                    <span th:text="${upload.user.branch}">Computer Science</span>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-copy me-1"></i>
+                                    <span th:text="${upload.copyCount}">1</span> copies
+                                </small>
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-file-alt me-1"></i>
+                                    <span th:text="${upload.pageCount}">1</span> pages
                                 </small>
                             </div>
                             <div class="col-md-2">
@@ -157,7 +172,7 @@
                                     <span th:text="${#temporals.format(upload.uploadedAt, 'MMM dd, HH:mm')}">Dec 15, 10:30</span>
                                 </small>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-2">
                                 <span class="badge bg-warning">PENDING</span>
                             </div>
                         </div>
@@ -167,24 +182,28 @@
                     <div class="card mt-4 border-primary">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">
-                                <i class="fas fa-info-circle me-2"></i>Batch Summary
+                                <i class="fas fa-info-circle me-2"></i>Container Summary
                             </h5>
                         </div>
                         <div class="card-body">
                             <div class="row">
-                                <div class="col-md-3 text-center">
+                                <div class="col-md-2 text-center">
                                     <h4 class="text-primary" th:text="${#lists.size(uploads)}">0</h4>
                                     <small class="text-muted">Total Files</small>
                                 </div>
-                                        <div class="col-md-3 text-center">
-                                            <h4 class="text-info" th:text="${totalSizeMb}">0</h4>
-                                            <small class="text-muted">Total Size (MB)</small>
-                                        </div>
-                                        <div class="col-md-3 text-center">
-                                            <h4 class="text-success" th:text="${uniqueStudents}">0</h4>
-                                            <small class="text-muted">Unique Students</small>
-                                        </div>
-                                <div class="col-md-3 text-center">
+                                <div class="col-md-2 text-center">
+                                    <h4 class="text-info" th:text="${#numbers.formatDecimal(totalSizeMb, 1, 2)}">0</h4>
+                                    <small class="text-muted">Total Size (MB)</small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <h4 class="text-success" th:text="${uniqueStudents}">0</h4>
+                                    <small class="text-muted">Unique Students</small>
+                                </div>
+                                <div class="col-md-2 text-center">
+                                    <h4 class="text-secondary" th:text="${totalCopies}">0</h4>
+                                    <small class="text-muted">Total Copies</small>
+                                </div>
+                                <div class="col-md-4 text-center">
                                     <h4 class="text-warning">READY</h4>
                                     <small class="text-muted">Status</small>
                                 </div>

@@ -41,7 +41,10 @@ public class PdfUpload {
     private String division;
 
     @Column(nullable = false)
-    private String academicYear; // Year of the student at upload time (denormalized, required for org
+    private String academicYear; // Year of the student at upload time (denormalized, required for org)
+
+    @Column(nullable = false)
+    private String semester; // Semester at upload time (e.g., "1", "2", etc.)
 
     @Column(nullable = false)
     private long fileSize;
@@ -69,13 +72,14 @@ public class PdfUpload {
     public PdfUpload() {}
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String branch, String division, String academicYear, String batch, long fileSize, User user) {
+                     String branch, String division, String academicYear, String semester, String batch, long fileSize, User user) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
         this.githubPath = githubPath;
         this.branch = branch;
         this.division = division;
         this.academicYear = academicYear;
+        this.semester = semester;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
@@ -83,7 +87,7 @@ public class PdfUpload {
     }
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
-                     String branch, String division, String academicYear, String batch, long fileSize, User user, 
+                     String branch, String division, String academicYear, String semester, String batch, long fileSize, User user, 
                      int copyCount, int pageCount, BigDecimal totalCost) {
         this.fileName = fileName;
         this.originalFileName = originalFileName;
@@ -91,6 +95,7 @@ public class PdfUpload {
         this.branch = branch;
         this.division = division;
         this.academicYear = academicYear;
+        this.semester = semester;
         this.batch = batch;
         this.fileSize = fileSize;
         this.user = user;
@@ -107,6 +112,9 @@ public class PdfUpload {
 
     public String getAcademicYear() { return academicYear; }
     public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
+    public String getSemester() { return semester; }
+    public void setSemester(String semester) { this.semester = semester; }
 
     // Getters and Setters
     public Long getId() { return id; }

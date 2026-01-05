@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.pdfprinting.model.PdfUpload;
@@ -41,53 +42,152 @@ public class AdminController {
 
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        // Build hierarchy: year -> branch -> division -> batch -> count
+        // Build hierarchy: year -> branch -> division -> semester -> batch -> count
+        // Container is defined by (academicYear, branch, division, semester, batch)
         List<PdfUpload> pending = pdfUploadService.getPendingUploads();
 
-        Map<String, Map<String, Map<String, Map<String, Long>>>> hierarchy = new java.util.LinkedHashMap<>();
+        // 5-level hierarchy: year -> branch -> division -> semester -> batch -> count
+        Map<String, Map<String, Map<String, Map<String, Map<String, Long>>>>> hierarchy = 
+            new java.util.LinkedHashMap<>();
 
         for (PdfUpload upload : pending) {
-            User user = upload.getUser();
-            if (user == null) continue;
-            String year = user.getAcademicYear() == null ? "Unknown Year" : user.getAcademicYear();
-            String branch = user.getBranch() == null ? "Unknown Branch" : user.getBranch();
-            String division = user.getDivision() == null ? "Unknown Division" : user.getDivision();
+            String year = upload.getAcademicYear() == null ? "Unknown Year" : upload.getAcademicYear();
+            String branch = upload.getBranch() == null ? "Unknown Branch" : upload.getBranch();
+            String division = upload.getDivision() == null ? "Unknown Division" : upload.getDivision();
+            String semester = upload.getSemester() == null ? "Unknown Semester" : upload.getSemester();
             String batch = upload.getBatch() == null ? "Unknown Batch" : upload.getBatch();
 
             hierarchy
                 .computeIfAbsent(year, y -> new java.util.LinkedHashMap<>())
                 .computeIfAbsent(branch, b -> new java.util.LinkedHashMap<>())
                 .computeIfAbsent(division, d -> new java.util.LinkedHashMap<>())
+                .computeIfAbsent(semester, s -> new java.util.LinkedHashMap<>())
                 .merge(batch, 1L, Long::sum);
         }
 
         long totalPending = pending.size();
 
-    model.addAttribute("hierarchy", hierarchy);
+        model.addAttribute("hierarchy", hierarchy);
         model.addAttribute("totalPending", totalPending);
         model.addAttribute("title", "Admin Dashboard - Print For You");
         
         return "admin/dashboard";
     }
 
+    /**
+     * View container details using container key format: year|branch|division|semester|batch
+     */
+    @GetMapping("/container")
+    public String viewContainer(
+            @RequestParam String academicYear,
+            @RequestParam String branch,
+            @RequestParam String division,
+            @RequestParam String semester,
+            @RequestParam String batch,
+            Model model) {
+        
+        List<PdfUpload> uploads = pdfUploadService.getContainerUploads(
+            academicYear, branch, division, semester, batch);
+        
+        long totalFiles = uploads.size();
+        double totalSizeMb = uploads.stream().mapToLong(PdfUpload::getFileSize).sum() / 1024.0 / 1024.0;
+        long uniqueStudents = uploads.stream().map(u -> u.getUser().getId()).distinct().count();
+        int totalCopies = uploads.stream().mapToInt(PdfUpload::getCopyCount).sum();
+
+        // Container info for display
+        model.addAttribute("academicYear", academicYear);
+        model.addAttribute("branch", branch);
+        model.addAttribute("division", division);
+        model.addAttribute("semester", semester);
+        model.addAttribute("batch", batch);
+        model.addAttribute("containerKey", PdfMergeService.getContainerKey(academicYear, branch, division, semester, batch));
+        
+        model.addAttribute("uploads", uploads);
+        model.addAttribute("totalFiles", totalFiles);
+        model.addAttribute("totalSizeMb", totalSizeMb);
+        model.addAttribute("uniqueStudents", uniqueStudents);
+        model.addAttribute("totalCopies", totalCopies);
+        model.addAttribute("title", batch + " - Container Details");
+        
+        return "admin/batch-details";
+    }
+
+    /**
+     * Legacy batch view - kept for backward compatibility
+     * @deprecated Use viewContainer instead
+     */
+    @Deprecated
     @GetMapping("/batch/{batchName}")
     public String viewBatch(@PathVariable String batchName, Model model) {
         List<PdfUpload> uploads = pdfUploadService.getBatchUploads(batchName);
         
-    long totalFiles = uploads.size();
-    double totalSizeMb = uploads.stream().mapToLong(PdfUpload::getFileSize).sum() / 1024.0 / 1024.0;
-    long uniqueStudents = uploads.stream().map(u -> u.getUser().getId()).distinct().count();
+        long totalFiles = uploads.size();
+        double totalSizeMb = uploads.stream().mapToLong(PdfUpload::getFileSize).sum() / 1024.0 / 1024.0;
+        long uniqueStudents = uploads.stream().map(u -> u.getUser().getId()).distinct().count();
 
-    model.addAttribute("batchName", batchName);
-    model.addAttribute("uploads", uploads);
-    model.addAttribute("totalFiles", totalFiles);
-    model.addAttribute("totalSizeMb", totalSizeMb);
-    model.addAttribute("uniqueStudents", uniqueStudents);
+        model.addAttribute("batchName", batchName);
+        model.addAttribute("uploads", uploads);
+        model.addAttribute("totalFiles", totalFiles);
+        model.addAttribute("totalSizeMb", totalSizeMb);
+        model.addAttribute("uniqueStudents", uniqueStudents);
         model.addAttribute("title", batchName + " - Admin Dashboard");
         
         return "admin/batch-details";
     }
 
+    /**
+     * Merge all PDFs in a container
+     */
+    @PostMapping("/merge")
+    public String mergeContainer(
+            @RequestParam String academicYear,
+            @RequestParam String branch,
+            @RequestParam String division,
+            @RequestParam String semester,
+            @RequestParam String batch,
+            RedirectAttributes redirectAttributes) {
+        try {
+            List<PdfUpload> uploads = pdfUploadService.getContainerUploads(
+                academicYear, branch, division, semester, batch);
+            
+            if (uploads.isEmpty()) {
+                redirectAttributes.addFlashAttribute("error", 
+                    "No pending uploads found for container");
+                return "redirect:/admin/dashboard";
+            }
+
+            // Merge PDFs from container (ordered by upload_time ASC)
+            byte[] mergedPdf = pdfMergeService.mergeContainerPdfs(
+                academicYear, branch, division, semester, batch);
+            System.out.println("Merged PDF size: " + (mergedPdf == null ? 0 : mergedPdf.length));
+            
+            // Mark all uploads in container as PROCESSED
+            pdfUploadService.clearContainerUploads(academicYear, branch, division, semester, batch);
+            
+            String containerKey = PdfMergeService.getContainerKey(academicYear, branch, division, semester, batch);
+            redirectAttributes.addFlashAttribute("message", 
+                uploads.size() + " PDFs from container have been merged successfully!");
+            redirectAttributes.addFlashAttribute("downloadReady", true);
+            redirectAttributes.addFlashAttribute("containerKey", containerKey);
+            redirectAttributes.addFlashAttribute("academicYear", academicYear);
+            redirectAttributes.addFlashAttribute("branch", branch);
+            redirectAttributes.addFlashAttribute("division", division);
+            redirectAttributes.addFlashAttribute("semester", semester);
+            redirectAttributes.addFlashAttribute("batch", batch);
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Failed to merge PDFs: " + e.getMessage());
+        }
+        
+        return "redirect:/admin/dashboard";
+    }
+
+    /**
+     * Legacy merge by batch name
+     * @deprecated Use mergeContainer instead
+     */
+    @Deprecated
     @PostMapping("/merge/{batchName}")
     public String mergeBatch(@PathVariable String batchName, 
                             RedirectAttributes redirectAttributes) {
@@ -100,12 +200,9 @@ public class AdminController {
                 return "redirect:/admin/dashboard";
             }
 
-            // Store merged PDF in session or temporary storage for download
             byte[] mergedPdf = pdfMergeService.mergeBatchPdfs(batchName);
-            // use mergedPdf length in a debug log to avoid unused variable warning
             System.out.println("Merged PDF size: " + (mergedPdf == null ? 0 : mergedPdf.length));
             
-            // Clear the batch queue
             pdfUploadService.clearBatchUploads(batchName);
             
             redirectAttributes.addFlashAttribute("message", 
@@ -121,6 +218,41 @@ public class AdminController {
         return "redirect:/admin/dashboard";
     }
 
+    /**
+     * Download merged PDF for a container
+     */
+    @GetMapping("/download")
+    public ResponseEntity<ByteArrayResource> downloadContainerPdf(
+            @RequestParam String academicYear,
+            @RequestParam String branch,
+            @RequestParam String division,
+            @RequestParam String semester,
+            @RequestParam String batch) {
+        try {
+            byte[] mergedPdf = pdfMergeService.getMergedPdfByContainer(
+                academicYear, branch, division, semester, batch);
+            
+            ByteArrayResource resource = new ByteArrayResource(mergedPdf);
+            
+            String filename = String.join("_", academicYear, branch, division, semester, batch)
+                .replaceAll("[^a-zA-Z0-9_-]", "_") + "_merged.pdf";
+            
+            return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(mergedPdf.length)
+                .body(resource);
+                
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Legacy download by batch name
+     * @deprecated Use downloadContainerPdf instead
+     */
+    @Deprecated
     @GetMapping("/download/{batchName}")
     public ResponseEntity<ByteArrayResource> downloadMergedPdf(@PathVariable String batchName) {
         try {

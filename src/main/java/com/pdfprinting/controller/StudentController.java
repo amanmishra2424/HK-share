@@ -105,10 +105,15 @@ public class StudentController {
             return "redirect:/student/dashboard";
         }
 
-        // Check if user has academicYear set
+        // Check if user has all container fields set
         if (user.getAcademicYear() == null || user.getAcademicYear().isBlank()) {
             redirectAttributes.addFlashAttribute("error", 
-                "Your academic year is not set. Please contact support or register again to set your academic year before uploading PDFs.");
+                "Your academic year is not set. Please contact support or update your profile before uploading PDFs.");
+            return "redirect:/student/dashboard";
+        }
+        if (user.getSemester() == null || user.getSemester().isBlank()) {
+            redirectAttributes.addFlashAttribute("error", 
+                "Your semester is not set. Please contact support or update your profile before uploading PDFs.");
             return "redirect:/student/dashboard";
         }
 
@@ -126,13 +131,16 @@ public class StudentController {
             }
             
             // Process upload and deduct amount
-            // Always use the student's registered batch (auto-assigned) rather than a user-provided value
+            // Upload goes directly into the container defined by user's profile:
+            // (academicYear, branch, division, semester, batch)
             String batch = user.getBatch();
             int uploadedCount = pdfUploadService.uploadPdfs(files, batch, user, copyCount);
             walletService.deductMoney(user, totalCost, "PDF printing cost for " + uploadedCount + " files");
             
+            String containerInfo = String.format("Container: %s / %s / %s / Sem %s / %s", 
+                user.getAcademicYear(), user.getBranch(), user.getDivision(), user.getSemester(), batch);
             redirectAttributes.addFlashAttribute("message", 
-                uploadedCount + " PDF(s) uploaded successfully with " + copyCount + " copies each! ₹" + totalCost + " deducted from wallet.");
+                uploadedCount + " PDF(s) uploaded successfully with " + copyCount + " copies each! ₹" + totalCost + " deducted. " + containerInfo);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", 
                 "Upload failed: " + e.getMessage());

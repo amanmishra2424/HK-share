@@ -13,6 +13,7 @@ public class PendingRegistration {
     private String branch;
     private String division;
     private String academicYear;
+    private String semester;
     private String rollNumber;
     private String phoneNumber;
     private String batch;
@@ -33,6 +34,7 @@ public class PendingRegistration {
         this.branch = branch;
         this.division = division;
         this.academicYear = null;
+        this.semester = null;
         this.rollNumber = rollNumber;
         this.phoneNumber = phoneNumber;
         this.batch = batch;
@@ -43,13 +45,14 @@ public class PendingRegistration {
     }
 
     public PendingRegistration(String email, String name, String branch, String division,
-                              String academicYear, String rollNumber, String phoneNumber, String batch,
+                              String academicYear, String semester, String rollNumber, String phoneNumber, String batch,
                               String password, String otp, LocalDateTime otpExpiry) {
         this.email = email;
         this.name = name;
         this.branch = branch;
         this.division = division;
         this.academicYear = academicYear;
+        this.semester = semester;
         this.rollNumber = rollNumber;
         this.phoneNumber = phoneNumber;
         this.batch = batch;
@@ -74,6 +77,9 @@ public class PendingRegistration {
 
     public String getAcademicYear() { return academicYear; }
     public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
+    public String getSemester() { return semester; }
+    public void setSemester(String semester) { this.semester = semester; }
 
     public String getRollNumber() { return rollNumber; }
     public void setRollNumber(String rollNumber) { this.rollNumber = rollNumber; }

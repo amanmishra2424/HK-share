@@ -22,8 +22,8 @@ import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"branch", "division", "rollNumber"}, 
-        name = "uk_branch_division_rollnumber"),
+    @UniqueConstraint(columnNames = {"academicYear", "branch", "division", "batch", "rollNumber"}, 
+        name = "uk_container_rollnumber"),
     @UniqueConstraint(columnNames = {"email"}, 
         name = "uk_user_email")
 })
@@ -49,6 +49,9 @@ public class User {
 
     @NotBlank(message = "Academic year is required")
     private String academicYear;
+
+    @NotBlank(message = "Semester is required")
+    private String semester;
 
     @NotBlank(message = "Roll number is required")
     private String rollNumber;
@@ -97,6 +100,9 @@ public class User {
 
     public String getAcademicYear() { return academicYear; }
     public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
+
+    public String getSemester() { return semester; }
+    public void setSemester(String semester) { this.semester = semester; }
 
     // Getters and Setters
     public Long getId() { return id; }

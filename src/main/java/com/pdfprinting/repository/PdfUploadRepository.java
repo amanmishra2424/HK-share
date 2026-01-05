@@ -1,25 +1,32 @@
 package com.pdfprinting.repository;
 
-import com.pdfprinting.model.PdfUpload;
-import com.pdfprinting.model.User;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.User;
 
 @Repository
 public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     List<PdfUpload> findByUserOrderByUploadedAtDesc(User user);
     
-    // Find by branch, division, and batch
+    // Container-based queries (academicYear, branch, division, semester, batch)
+    List<PdfUpload> findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
+        String academicYear, String branch, String division, String semester, String batch, PdfUpload.Status status);
+    
+    // Find by branch, division, and batch (legacy support)
     List<PdfUpload> findByBranchAndDivisionAndBatchAndStatusOrderByUploadedAtAsc(
         String branch, String division, String batch, PdfUpload.Status status);
     
-    // Legacy methods (updated to use branch and division)
+    // Legacy methods
     List<PdfUpload> findByBatchAndStatusOrderByUploadedAtAsc(String batch, PdfUpload.Status status);
     List<PdfUpload> findByBatchOrderByUploadedAtAsc(String batch);
     
-    // Delete methods
+    // Delete methods - container-based
+    void deleteByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatus(
+        String academicYear, String branch, String division, String semester, String batch, PdfUpload.Status status);
     void deleteByBranchAndDivisionAndBatchAndStatus(
         String branch, String division, String batch, PdfUpload.Status status);
     void deleteByBatchAndStatus(String batch, PdfUpload.Status status);
@@ -32,4 +39,8 @@ public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     List<PdfUpload> findTop50ByOrderByUploadedAtDesc();
     List<PdfUpload> findByBatchOrderByUploadedAtDesc(String batch);
     List<PdfUpload> findByUserIdOrderByUploadedAtDesc(Long userId);
+    
+    // Container-based count
+    long countByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatus(
+        String academicYear, String branch, String division, String semester, String batch, PdfUpload.Status status);
 }

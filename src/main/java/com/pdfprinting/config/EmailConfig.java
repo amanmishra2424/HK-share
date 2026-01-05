@@ -20,17 +20,17 @@ public class EmailConfig implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        logger.info("Testing email configuration...");
+        logger.info("Testing Brevo email configuration...");
         emailService.logEmailConfiguration();
         
         if (emailService.testEmailConfiguration()) {
-            logger.info("Email system is configured and working correctly");
+            logger.info("Brevo email system is configured and working correctly");
         } else {
-            logger.error("Email configuration test failed. Please check your Brevo SMTP settings:");
-            logger.error("1. Set BREVO_SMTP_HOST (default smtp-relay.brevo.com) and BREVO_SMTP_PORT (default 587)");
-            logger.error("2. Provide BREVO_SMTP_USERNAME (your Brevo SMTP login) and BREVO_SMTP_PASSWORD (SMTP key)");
-            logger.error("3. Configure APP_MAIL_FROM_ADDRESS with a verified sender email in Brevo");
-            logger.error("4. Ensure email.enabled=true and TLS is allowed on your hosting provider (Render)");
+            logger.error("Brevo email configuration test failed. Please check your settings:");
+            logger.error("1. Set BREVO_API_KEY environment variable with your Brevo API key");
+            logger.error("2. Configure APP_MAIL_FROM_ADDRESS with a verified sender email in Brevo");
+            logger.error("3. Ensure email.enabled=true in application.properties");
+            logger.error("Get your API key from: https://app.brevo.com/settings/keys/api");
         }
     }
 }

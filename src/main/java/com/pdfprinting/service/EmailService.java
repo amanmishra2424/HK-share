@@ -1,18 +1,19 @@
-// ...existing code...
-
-// ...existing code...
 package com.pdfprinting.service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -20,18 +21,13 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import com.pdfprinting.model.User;
-
-import jakarta.mail.internet.MimeMessage;
-
 @Service
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 2000;
-
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
     @Autowired(required = false)
     private TemplateEngine templateEngine;
@@ -39,10 +35,10 @@ public class EmailService {
     @Value("${app.base-url}")
     private String baseUrl;
 
-    @Value("${spring.mail.username:}")
-    private String mailUsername;
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
 
-    @Value("${app.mail.from-address:${spring.mail.from:${spring.mail.username:}}}")
+    @Value("${app.mail.from-address:noreply@printforyou.com}")
     private String configuredFromEmail;
 
     @Value("${app.mail.from-name:Print For You}")
@@ -51,21 +47,20 @@ public class EmailService {
     @Value("${email.enabled:false}")
     private boolean emailEnabled;
 
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
+
     public void logEmailConfiguration() {
         if (!logger.isInfoEnabled()) {
             return;
         }
 
         String fromAddress = resolveFromEmail();
-        logger.info("Email configuration summary | enabled={} | mailSenderPresent={} | usernameConfigured={} | fromAddress={}",
+        logger.info("Email configuration summary | enabled={} | brevoApiKeyConfigured={} | fromAddress={}",
                 emailEnabled,
-                mailSender != null,
-                StringUtils.hasText(mailUsername) && !isPlaceholder(mailUsername),
+                StringUtils.hasText(brevoApiKey) && !isPlaceholder(brevoApiKey),
                 maskEmail(fromAddress));
-    }
-
-    private boolean isEmailConfigured() {
-        return validateEmailConfiguration().isEmpty();
     }
 
     private Optional<String> validateEmailConfiguration() {
@@ -73,21 +68,17 @@ public class EmailService {
             return Optional.of("EMAIL_ENABLED flag is false");
         }
 
-        if (mailSender == null) {
-            return Optional.of("JavaMailSender bean is null (Spring mail not initialized)");
+        if (!StringUtils.hasText(brevoApiKey)) {
+            return Optional.of("brevo.api.key / BREVO_API_KEY is empty");
         }
 
-        if (!StringUtils.hasText(mailUsername)) {
-            return Optional.of("spring.mail.username / BREVO_SMTP_USERNAME is empty");
-        }
-
-        if (isPlaceholder(mailUsername)) {
-            return Optional.of("spring.mail.username contains unresolved placeholder");
+        if (isPlaceholder(brevoApiKey)) {
+            return Optional.of("brevo.api.key contains unresolved placeholder");
         }
 
         String fromAddress = resolveFromEmail();
         if (!StringUtils.hasText(fromAddress)) {
-            return Optional.of("No sender address configured (APP_MAIL_FROM_ADDRESS / spring.mail.from)");
+            return Optional.of("No sender address configured (APP_MAIL_FROM_ADDRESS)");
         }
 
         if (isPlaceholder(fromAddress)) {
@@ -122,12 +113,63 @@ public class EmailService {
         if (StringUtils.hasText(configuredFromEmail) && !configuredFromEmail.contains("${")) {
             return configuredFromEmail.trim();
         }
-
-        if (StringUtils.hasText(mailUsername) && !mailUsername.contains("${")) {
-            return mailUsername.trim();
-        }
-
         return "";
+    }
+
+    /**
+     * Send email using Brevo REST API directly
+     */
+    private boolean sendEmailViaBrevo(String toEmail, String subject, String htmlContent, String textContent) {
+        try {
+            JSONObject payload = new JSONObject();
+            
+            // Set sender
+            JSONObject sender = new JSONObject();
+            sender.put("email", resolveFromEmail());
+            sender.put("name", fromName);
+            payload.put("sender", sender);
+            
+            // Set recipient
+            JSONArray toArray = new JSONArray();
+            JSONObject recipient = new JSONObject();
+            recipient.put("email", toEmail);
+            toArray.put(recipient);
+            payload.put("to", toArray);
+            
+            // Set subject
+            payload.put("subject", subject);
+            
+            // Set content
+            if (StringUtils.hasText(htmlContent)) {
+                payload.put("htmlContent", htmlContent);
+            }
+            if (StringUtils.hasText(textContent)) {
+                payload.put("textContent", textContent);
+            }
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(BREVO_API_URL))
+                    .header("accept", "application/json")
+                    .header("api-key", brevoApiKey)
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                    .timeout(Duration.ofSeconds(30))
+                    .build();
+            
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                logger.info("Email sent successfully via Brevo to {} - response: {}", toEmail, response.body());
+                return true;
+            } else {
+                logger.error("Brevo API error sending email to {}: {} - {}", toEmail, response.statusCode(), response.body());
+                return false;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error sending email via Brevo to {}: {}", toEmail, e.getMessage());
+            return false;
+        }
     }
 
     public void sendVerificationEmail(User user) {
@@ -144,36 +186,34 @@ public class EmailService {
             try {
                 logger.info("Sending verification email to {} (attempt {}/{})", user.getEmail(), attempt, MAX_RETRIES);
                 
-                MimeMessage message = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-                String fromEmail = resolveFromEmail();
-                helper.setFrom(fromEmail, fromName);
-                helper.setTo(user.getEmail());
-                helper.setSubject("Welcome to Print For You - Please Verify Your Email");
+                String htmlContent = null;
+                String textContent = null;
                 
                 if (templateEngine != null) {
-                    // Create template context
                     Context context = new Context();
                     context.setVariable("user", user);
                     context.setVariable("verificationUrl", baseUrl + "/verify-email?token=" + user.getVerificationToken());
                     context.setVariable("baseUrl", baseUrl);
-                    
-                    // Process HTML template
-                    String htmlContent = templateEngine.process("email/verification", context);
-                    helper.setText(htmlContent, true);
+                    htmlContent = templateEngine.process("email/verification", context);
                 } else {
-                    // Fallback to plain text
-                    String textContent = "Welcome to Print For You!\n\n" +
-                                       "Please verify your email by clicking the following link:\n" +
-                                       baseUrl + "/verify-email?token=" + user.getVerificationToken() + "\n\n" +
-                                       "Thank you!";
-                    helper.setText(textContent, false);
+                    textContent = "Welcome to Print For You!\n\n" +
+                                "Please verify your email by clicking the following link:\n" +
+                                baseUrl + "/verify-email?token=" + user.getVerificationToken() + "\n\n" +
+                                "Thank you!";
                 }
                 
-                mailSender.send(message);
-                logger.info("Verification email sent successfully to {}", user.getEmail());
-                return;
+                boolean success = sendEmailViaBrevo(
+                    user.getEmail(),
+                    "Welcome to Print For You - Please Verify Your Email",
+                    htmlContent,
+                    textContent
+                );
+                
+                if (success) {
+                    logger.info("Verification email sent successfully to {}", user.getEmail());
+                    return;
+                }
+                throw new RuntimeException("Brevo API returned failure");
                 
             } catch (Exception e) {
                 lastException = e;
@@ -208,36 +248,34 @@ public class EmailService {
         try {
             logger.info("Sending batch processed notification for {} with {} files", batchName, fileCount);
             
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            String fromEmail = resolveFromEmail();
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(fromEmail); // Send to admin
-            helper.setSubject("Batch Processed: " + batchName + " (" + fileCount + " files)");
+            String htmlContent = null;
+            String textContent = null;
             
             if (templateEngine != null) {
-                // Create template context
                 Context context = new Context();
                 context.setVariable("batchName", batchName);
                 context.setVariable("fileCount", fileCount);
                 context.setVariable("studentEmails", studentEmails);
                 context.setVariable("processedAt", java.time.LocalDateTime.now());
-                
-                // Process HTML template
-                String htmlContent = templateEngine.process("email/batch-processed", context);
-                helper.setText(htmlContent, true);
+                htmlContent = templateEngine.process("email/batch-processed", context);
             } else {
-                // Fallback to plain text
-                String textContent = "Batch Processed: " + batchName + "\n\n" +
-                                   "Files processed: " + fileCount + "\n" +
-                                   "Student emails: " + String.join(", ", studentEmails) + "\n" +
-                                   "Processed at: " + java.time.LocalDateTime.now();
-                helper.setText(textContent, false);
+                textContent = "Batch Processed: " + batchName + "\n\n" +
+                            "Files processed: " + fileCount + "\n" +
+                            "Student emails: " + String.join(", ", studentEmails) + "\n" +
+                            "Processed at: " + java.time.LocalDateTime.now();
             }
             
-            mailSender.send(message);
-            logger.info("Batch processed notification sent successfully for {}", batchName);
+            String fromEmail = resolveFromEmail();
+            boolean success = sendEmailViaBrevo(
+                fromEmail, // Send to admin
+                "Batch Processed: " + batchName + " (" + fileCount + " files)",
+                htmlContent,
+                textContent
+            );
+            
+            if (success) {
+                logger.info("Batch processed notification sent successfully for {}", batchName);
+            }
             
         } catch (Exception e) {
             logger.error("Failed to send batch processed notification for {}: {}", batchName, e.getMessage());
@@ -255,36 +293,33 @@ public class EmailService {
         try {
             logger.info("Sending welcome email to {}", user.getEmail());
             
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            String fromEmail = resolveFromEmail();
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(user.getEmail());
-            helper.setSubject("Welcome to Print For You - Account Activated!");
+            String htmlContent = null;
+            String textContent = null;
             
             if (templateEngine != null) {
-                // Create template context
                 Context context = new Context();
                 context.setVariable("user", user);
                 context.setVariable("loginUrl", baseUrl + "/login");
                 context.setVariable("baseUrl", baseUrl);
-                
-                // Process HTML template
-                String htmlContent = templateEngine.process("email/welcome", context);
-                helper.setText(htmlContent, true);
+                htmlContent = templateEngine.process("email/welcome", context);
             } else {
-                // Fallback to plain text
-                String textContent = "Welcome to Print For You!\n\n" +
-                                   "Your account has been activated.\n\n" +
-                                   "Please log in by clicking the following link:\n" +
-                                   baseUrl + "/login\n\n" +
-                                   "Thank you!";
-                helper.setText(textContent, false);
+                textContent = "Welcome to Print For You!\n\n" +
+                            "Your account has been activated.\n\n" +
+                            "Please log in by clicking the following link:\n" +
+                            baseUrl + "/login\n\n" +
+                            "Thank you!";
             }
             
-            mailSender.send(message);
-            logger.info("Welcome email sent successfully to {}", user.getEmail());
+            boolean success = sendEmailViaBrevo(
+                user.getEmail(),
+                "Welcome to Print For You - Account Activated!",
+                htmlContent,
+                textContent
+            );
+            
+            if (success) {
+                logger.info("Welcome email sent successfully to {}", user.getEmail());
+            }
             
         } catch (Exception e) {
             logger.error("Failed to send welcome email to {}: {}", user.getEmail(), e.getMessage());
@@ -302,36 +337,33 @@ public class EmailService {
         try {
             logger.info("Sending password reset email to {}", user.getEmail());
             
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            String fromEmail = resolveFromEmail();
-            helper.setFrom(fromEmail, fromName);
-            helper.setTo(user.getEmail());
-            helper.setSubject("Print For You - Password Reset Request");
+            String htmlContent = null;
+            String textContent = null;
             
             if (templateEngine != null) {
-                // Create template context
                 Context context = new Context();
                 context.setVariable("user", user);
                 context.setVariable("resetUrl", baseUrl + "/reset-password?token=" + resetToken);
                 context.setVariable("baseUrl", baseUrl);
-                
-                // Process HTML template
-                String htmlContent = templateEngine.process("email/password-reset", context);
-                helper.setText(htmlContent, true);
+                htmlContent = templateEngine.process("email/password-reset", context);
             } else {
-                // Fallback to plain text
-                String textContent = "Hello " + user.getName() + ",\n\n" +
-                                   "You have requested to reset your password.\n\n" +
-                                   "Please click the following link to reset your password:\n" +
-                                   baseUrl + "/reset-password?token=" + resetToken + "\n\n" +
-                                   "Thank you!";
-                helper.setText(textContent, false);
+                textContent = "Hello " + user.getName() + ",\n\n" +
+                            "You have requested to reset your password.\n\n" +
+                            "Please click the following link to reset your password:\n" +
+                            baseUrl + "/reset-password?token=" + resetToken + "\n\n" +
+                            "Thank you!";
             }
             
-            mailSender.send(message);
-            logger.info("Password reset email sent successfully to {}", user.getEmail());
+            boolean success = sendEmailViaBrevo(
+                user.getEmail(),
+                "Print For You - Password Reset Request",
+                htmlContent,
+                textContent
+            );
+            
+            if (success) {
+                logger.info("Password reset email sent successfully to {}", user.getEmail());
+            }
             
         } catch (Exception e) {
             logger.error("Failed to send password reset email to {}: {}", user.getEmail(), e.getMessage());
@@ -347,21 +379,24 @@ public class EmailService {
         }
 
         try {
-            logger.info("Testing email configuration...");
+            logger.info("Testing email configuration with Brevo API...");
             
             String fromEmail = resolveFromEmail();
-
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(fromEmail); // Send test email to self
-            message.setSubject("Print For You - Email Configuration Test");
-            message.setText("This is a test email to verify that the email configuration is working correctly.\n\n" +
-                          "If you receive this email, the email system is properly configured.\n\n" +
-                          "Timestamp: " + java.time.LocalDateTime.now());
+            String textContent = "This is a test email to verify that the Brevo email configuration is working correctly.\n\n" +
+                               "If you receive this email, the email system is properly configured.\n\n" +
+                               "Timestamp: " + java.time.LocalDateTime.now();
             
-            mailSender.send(message);
-            logger.info("Test email sent successfully");
-            return true;
+            boolean success = sendEmailViaBrevo(
+                fromEmail, // Send test email to self
+                "Print For You - Email Configuration Test",
+                null,
+                textContent
+            );
+            
+            if (success) {
+                logger.info("Test email sent successfully via Brevo");
+            }
+            return success;
             
         } catch (Exception e) {
             logger.error("Email configuration test failed: {}", e.getMessage());
@@ -381,26 +416,99 @@ public class EmailService {
         Exception lastException = null;
         for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
             try {
-                logger.info("Sending OTP email to {} (attempt {}/{})", user.getEmail(), attempt, MAX_RETRIES);
-                String fromEmail = resolveFromEmail();
-
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(user.getEmail());
-                message.setFrom(fromEmail);
-                message.setSubject("Your OTP for Print For You Registration");
-                message.setText("Your OTP for registration is: " + user.getOtp() + "\nThis OTP is valid for 10 minutes.");
-                mailSender.send(message);
-                logger.info("OTP email sent to {}", user.getEmail());
-                return;
+                logger.info("Sending OTP email to {} via Brevo (attempt {}/{})", user.getEmail(), attempt, MAX_RETRIES);
+                
+                String htmlContent = "<html><body>" +
+                    "<h2>Your OTP for Print For You Registration</h2>" +
+                    "<p>Your One-Time Password (OTP) is:</p>" +
+                    "<h1 style='color: #4CAF50; font-size: 32px; letter-spacing: 5px;'>" + user.getOtp() + "</h1>" +
+                    "<p>This OTP is valid for <strong>10 minutes</strong>.</p>" +
+                    "<p>If you did not request this OTP, please ignore this email.</p>" +
+                    "<br><p>Thank you,<br>Print For You Team</p>" +
+                    "</body></html>";
+                
+                String textContent = "Your OTP for Print For You Registration\n\n" +
+                    "Your One-Time Password (OTP) is: " + user.getOtp() + "\n\n" +
+                    "This OTP is valid for 10 minutes.\n\n" +
+                    "If you did not request this OTP, please ignore this email.\n\n" +
+                    "Thank you,\nPrint For You Team";
+                
+                boolean success = sendEmailViaBrevo(
+                    user.getEmail(),
+                    "Your OTP for Print For You Registration",
+                    htmlContent,
+                    textContent
+                );
+                
+                if (success) {
+                    logger.info("OTP email sent successfully to {} via Brevo", user.getEmail());
+                    return;
+                }
+                throw new RuntimeException("Brevo API returned failure");
+                
             } catch (Exception e) {
                 lastException = e;
                 logger.error("Failed to send OTP email to {}: {}", user.getEmail(), e.getMessage());
-                try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ignored) {}
+                try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
             }
         }
         if (lastException != null) {
             logger.error("Giving up on sending OTP email to {} after {} attempts", user.getEmail(), MAX_RETRIES);
         }
+    }
+
+    /**
+     * Send OTP email for pending registration (before user is created)
+     */
+    public boolean sendOtpEmailForRegistration(String email, String otp) {
+        Optional<String> validationError = validateEmailConfiguration();
+        if (validationError.isPresent()) {
+            logger.warn("Email not configured ({}). Skipping OTP email for: {}",
+                    validationError.get(), email);
+            return false;
+        }
+
+        Exception lastException = null;
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                logger.info("Sending registration OTP email to {} via Brevo (attempt {}/{})", email, attempt, MAX_RETRIES);
+                
+                String htmlContent = "<html><body>" +
+                    "<h2>Your OTP for Print For You Registration</h2>" +
+                    "<p>Your One-Time Password (OTP) is:</p>" +
+                    "<h1 style='color: #4CAF50; font-size: 32px; letter-spacing: 5px;'>" + otp + "</h1>" +
+                    "<p>This OTP is valid for <strong>10 minutes</strong>.</p>" +
+                    "<p>If you did not request this OTP, please ignore this email.</p>" +
+                    "<br><p>Thank you,<br>Print For You Team</p>" +
+                    "</body></html>";
+                
+                String textContent = "Your OTP for Print For You Registration\n\n" +
+                    "Your One-Time Password (OTP) is: " + otp + "\n\n" +
+                    "This OTP is valid for 10 minutes.\n\n" +
+                    "If you did not request this OTP, please ignore this email.\n\n" +
+                    "Thank you,\nPrint For You Team";
+                
+                boolean success = sendEmailViaBrevo(
+                    email,
+                    "Your OTP for Print For You Registration",
+                    htmlContent,
+                    textContent
+                );
+                
+                if (success) {
+                    logger.info("Registration OTP email sent successfully to {} via Brevo", email);
+                    return true;
+                }
+                throw new RuntimeException("Brevo API returned failure");
+                
+            } catch (Exception e) {
+                lastException = e;
+                logger.error("Failed to send registration OTP email to {}: {}", email, e.getMessage());
+                try { Thread.sleep(RETRY_DELAY_MS); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            }
+        }
+        logger.error("Giving up on sending registration OTP email to {} after {} attempts", email, MAX_RETRIES);
+        return false;
     }
 
     public void sendSystemNotification(String subject, String content) {
@@ -415,15 +523,18 @@ public class EmailService {
             logger.info("Sending system notification: {}", subject);
             
             String fromEmail = resolveFromEmail();
-
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(fromEmail); // Send to admin
-            message.setSubject("Print For You - " + subject);
-            message.setText(content + "\n\nTimestamp: " + java.time.LocalDateTime.now());
+            String textContent = content + "\n\nTimestamp: " + java.time.LocalDateTime.now();
             
-            mailSender.send(message);
-            logger.info("System notification sent successfully");
+            boolean success = sendEmailViaBrevo(
+                fromEmail, // Send to admin
+                "Print For You - " + subject,
+                null,
+                textContent
+            );
+            
+            if (success) {
+                logger.info("System notification sent successfully via Brevo");
+            }
             
         } catch (Exception e) {
             logger.error("Failed to send system notification: {}", e.getMessage());

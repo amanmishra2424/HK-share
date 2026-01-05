@@ -49,6 +49,7 @@ public class UserService {
                 admin.setBranch("Admin");
                 admin.setDivision("Admin");
                 admin.setAcademicYear("Admin");
+                admin.setSemester("Admin");
                 admin.setRollNumber("ADMIN001");
                 admin.setPhoneNumber("0000000000");
                 admin.setBatch("Admin");
@@ -58,10 +59,32 @@ public class UserService {
                 userRepository.save(admin);
                 System.out.println("Admin user created with email: " + adminEmail);
             } else {
-                // Update existing admin password to match application.properties
+                // Update existing admin - ensure all required fields are set
                 User admin = existingAdmin.get();
                 String encodedPassword = passwordEncoder.encode(adminPassword);
                 admin.setPassword(encodedPassword);
+                // Ensure all required fields have values (for existing admins from older schema)
+                if (admin.getAcademicYear() == null || admin.getAcademicYear().isEmpty()) {
+                    admin.setAcademicYear("Admin");
+                }
+                if (admin.getSemester() == null || admin.getSemester().isEmpty()) {
+                    admin.setSemester("Admin");
+                }
+                if (admin.getBranch() == null || admin.getBranch().isEmpty()) {
+                    admin.setBranch("Admin");
+                }
+                if (admin.getDivision() == null || admin.getDivision().isEmpty()) {
+                    admin.setDivision("Admin");
+                }
+                if (admin.getRollNumber() == null || admin.getRollNumber().isEmpty()) {
+                    admin.setRollNumber("ADMIN001");
+                }
+                if (admin.getPhoneNumber() == null || admin.getPhoneNumber().isEmpty()) {
+                    admin.setPhoneNumber("0000000000");
+                }
+                if (admin.getBatch() == null || admin.getBatch().isEmpty()) {
+                    admin.setBatch("Admin");
+                }
                 userRepository.save(admin);
                 System.out.println("Admin user already exists with email: " + adminEmail + " - password updated");
             }
@@ -87,10 +110,12 @@ public class UserService {
         String branch = user.getBranch() == null ? "" : user.getBranch().trim();
         String division = user.getDivision() == null ? "" : user.getDivision().trim();
         String academicYear = user.getAcademicYear() == null ? "" : user.getAcademicYear().trim();
+        String semester = user.getSemester() == null ? "" : user.getSemester().trim();
         String roll = user.getRollNumber() == null ? "" : user.getRollNumber().trim();
         user.setBranch(branch);
         user.setDivision(division);
         user.setAcademicYear(academicYear);
+        user.setSemester(semester);
         user.setRollNumber(roll);
 
         // Check if roll number exists in the same branch and division
@@ -118,6 +143,7 @@ public class UserService {
                     branch,
                     division,
                     academicYear,
+                    semester,
                     roll,
                     user.getPhoneNumber(),
                     user.getBatch(),
@@ -221,6 +247,7 @@ public class UserService {
         user.setBranch(pending.getBranch());
         user.setDivision(pending.getDivision());
         user.setAcademicYear(pending.getAcademicYear());
+        user.setSemester(pending.getSemester());
         user.setRollNumber(pending.getRollNumber());
         user.setPhoneNumber(pending.getPhoneNumber());
         user.setBatch(pending.getBatch());

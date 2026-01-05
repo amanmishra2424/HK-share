@@ -163,12 +163,14 @@
       <div class="row">
         <div class="col-md-6 mb-3">
           <select class="form-select" id="academicYear" th:field="*{academicYear}" required>
-            <option value="">Select Year</option>
-            <option value="1st">1st Year</option>
-            <option value="2nd">2nd Year</option>
-            <option value="3rd">3rd Year</option>
-            <option value="4th">4th Year</option>
+            <option value="">Select Batch Year</option>
+            <option value="2022-2026">2022-2026</option>
+            <option value="2023-2027">2023-2027</option>
+            <option value="2024-2028">2024-2028</option>
+            <option value="2025-2029">2025-2029</option>
+            <option value="2026-2030">2026-2030</option>
           </select>
+          <div class="form-text text-muted">Your 4-year batch (admission-graduation)</div>
           <div th:if="${#fields.hasErrors('academicYear')}" class="text-danger small mt-1">
             <span th:errors="*{academicYear}"></span>
           </div>
@@ -184,11 +186,31 @@
             <span th:errors="*{division}"></span>
           </div>
         </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <select class="form-select" id="semester" th:field="*{semester}" required>
+            <option value="">Select Semester</option>
+            <option value="Sem 1">Sem 1</option>
+            <option value="Sem 2">Sem 2</option>
+            <option value="Sem 3">Sem 3</option>
+            <option value="Sem 4">Sem 4</option>
+            <option value="Sem 5">Sem 5</option>
+            <option value="Sem 6">Sem 6</option>
+            <option value="Sem 7">Sem 7</option>
+            <option value="Sem 8">Sem 8</option>
+          </select>
+          <div th:if="${#fields.hasErrors('semester')}" class="text-danger small mt-1">
+            <span th:errors="*{semester}"></span>
+          </div>
+        </div>
         <div class="col-md-6 mb-3">
           <select class="form-select" id="batch" th:field="*{batch}" required>
             <option value="">Select Batch</option>
             <option value="Batch 1">Batch 1</option>
             <option value="Batch 2">Batch 2</option>
+            <option value="Batch 3">Batch 3</option>
           </select>
           <div th:if="${#fields.hasErrors('batch')}" class="text-danger small mt-1">
             <span th:errors="*{batch}"></span>
