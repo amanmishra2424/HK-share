@@ -2,9 +2,14 @@ package com.pdfprinting.service;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +28,9 @@ public class PdfMergeService {
 
     // Temporary storage for merged PDFs (in production, use Redis or database)
     private Map<String, byte[]> mergedPdfCache = new HashMap<>();
+    
+    // Thread pool for parallel PDF downloads (improves merge performance)
+    private static final ExecutorService downloadExecutor = Executors.newFixedThreadPool(4);
 
     /**
      * Generate a unique container key from the 5 container fields
@@ -36,6 +44,7 @@ public class PdfMergeService {
      * Merge all PENDING PDFs from a specific container
      * Container is defined by (academicYear, branch, division, semester, batch)
      * PDFs are ordered by upload_time ASC
+     * Uses parallel downloading for faster performance
      */
     public byte[] mergeContainerPdfs(String academicYear, String branch, String division, 
                                       String semester, String batch) throws Exception {
@@ -47,27 +56,42 @@ public class PdfMergeService {
                 getContainerKey(academicYear, branch, division, semester, batch));
         }
 
+        // Download all PDFs in parallel for faster performance
+        Map<Long, byte[]> downloadedPdfs = new ConcurrentHashMap<>();
+        List<CompletableFuture<Void>> downloadFutures = new ArrayList<>();
+        
+        for (PdfUpload upload : uploads) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                try {
+                    byte[] pdfBytes = gitHubStorageService.downloadFile(upload.getGithubPath());
+                    downloadedPdfs.put(upload.getId(), pdfBytes);
+                } catch (Exception e) {
+                    System.err.println("Failed to download PDF: " + upload.getOriginalFileName() + " - " + e.getMessage());
+                }
+            }, downloadExecutor);
+            downloadFutures.add(future);
+        }
+        
+        // Wait for all downloads to complete
+        CompletableFuture.allOf(downloadFutures.toArray(new CompletableFuture[0])).join();
+
         PDFMergerUtility mergerUtility = new PDFMergerUtility();
         ByteArrayOutputStream mergedOutputStream = new ByteArrayOutputStream();
         mergerUtility.setDestinationStream(mergedOutputStream);
 
         try {
+            // Add PDFs in order (uploads are already ordered by uploadedAt ASC)
             for (PdfUpload upload : uploads) {
-                try {
-                    // Download PDF from GitHub
-                    byte[] pdfBytes = gitHubStorageService.downloadFile(upload.getGithubPath());
+                byte[] pdfBytes = downloadedPdfs.get(upload.getId());
+                if (pdfBytes == null) {
+                    System.err.println("Skipping PDF (download failed): " + upload.getOriginalFileName());
+                    continue;
+                }
 
-                    int copyCount = upload.getCopyCount();
-
-                    for (int copy = 1; copy <= copyCount; copy++) {
-                        // Add each copy as a source stream to the merger
-                        ByteArrayInputStream inputStream = new ByteArrayInputStream(pdfBytes);
-                        mergerUtility.addSource(inputStream);
-                    }
-
-                } catch (Exception e) {
-                    System.err.println("Failed to add PDF to merger: " + upload.getOriginalFileName() + " - " + e.getMessage());
-                    // Continue with other files
+                int copyCount = upload.getCopyCount();
+                for (int copy = 1; copy <= copyCount; copy++) {
+                    ByteArrayInputStream inputStream = new ByteArrayInputStream(pdfBytes);
+                    mergerUtility.addSource(inputStream);
                 }
             }
 

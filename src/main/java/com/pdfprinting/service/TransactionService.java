@@ -1,11 +1,5 @@
 package com.pdfprinting.service;
 
-import com.pdfprinting.model.Transaction;
-import com.pdfprinting.model.User;
-import com.pdfprinting.repository.TransactionRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
@@ -13,6 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.pdfprinting.model.Transaction;
+import com.pdfprinting.model.User;
+import com.pdfprinting.repository.TransactionRepository;
 
 @Service
 public class TransactionService {
@@ -65,12 +66,19 @@ public class TransactionService {
     public Map<String, BigDecimal> getTotalsByType() {
         Map<String, BigDecimal> map = new HashMap<>();
         BigDecimal topups = sumByType(Transaction.TransactionType.WALLET_TOPUP);
-        BigDecimal billing = sumByType(Transaction.TransactionType.PDF_BILLING);
+        BigDecimal billing = sumByType(Transaction.TransactionType.PDF_BILLING); // This is negative in DB
         BigDecimal refunds = sumByType(Transaction.TransactionType.REFUND);
-        map.put("WALLET_TOPUP", topups);
-        map.put("PDF_BILLING", billing);
-        map.put("REFUND", refunds);
-        map.put("NET", topups.add(refunds).subtract(billing));
+        
+        // Billing is stored as negative, so abs value for display
+        BigDecimal billingAbs = billing.abs();
+        
+        map.put("WALLET_TOPUP", topups);          // Credited amount
+        map.put("PDF_BILLING", billing);           // Debited amount (negative)
+        map.put("PDF_BILLING_ABS", billingAbs);    // Absolute value for display
+        map.put("REFUND", refunds);                // Refunded amount (positive)
+        // NET = topups - debits + refunds (remaining balance across all users)
+        // Since billing is already negative, topups + billing + refunds = remaining
+        map.put("NET", topups.add(billing).add(refunds));
         return map;
     }
 

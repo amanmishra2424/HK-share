@@ -1,6 +1,7 @@
 package com.pdfprinting.controller;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,39 +41,98 @@ public class AdminController {
 
     // Departments mapping is derived from pending uploads at runtime.
 
+    /**
+     * Simple container info class for flat card display
+     */
+    public static class ContainerInfo {
+        private String academicYear;
+        private String branch;
+        private String division;
+        private String semester;
+        private String batch;
+        private long fileCount;
+        
+        public ContainerInfo(String academicYear, String branch, String division, 
+                            String semester, String batch, long fileCount) {
+            this.academicYear = academicYear;
+            this.branch = branch;
+            this.division = division;
+            this.semester = semester;
+            this.batch = batch;
+            this.fileCount = fileCount;
+        }
+        
+        // Getters
+        public String getAcademicYear() { return academicYear; }
+        public String getBranch() { return branch; }
+        public String getDivision() { return division; }
+        public String getSemester() { return semester; }
+        public String getBatch() { return batch; }
+        public long getFileCount() { return fileCount; }
+        
+        // Display label for card
+        public String getDisplayLabel() {
+            return academicYear + " | " + branch + " | Div " + division + " | Sem " + semester + " | " + batch;
+        }
+    }
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        // Build hierarchy: year -> branch -> division -> semester -> batch -> count
-        // Container is defined by (academicYear, branch, division, semester, batch)
+        // Build flat list of containers with counts for simple card display
         List<PdfUpload> pending = pdfUploadService.getPendingUploads();
 
-        // 5-level hierarchy: year -> branch -> division -> semester -> batch -> count
-        Map<String, Map<String, Map<String, Map<String, Map<String, Long>>>>> hierarchy = 
-            new java.util.LinkedHashMap<>();
-
-        for (PdfUpload upload : pending) {
-            String year = upload.getAcademicYear() == null ? "Unknown Year" : upload.getAcademicYear();
-            String branch = upload.getBranch() == null ? "Unknown Branch" : upload.getBranch();
-            String division = upload.getDivision() == null ? "Unknown Division" : upload.getDivision();
-            String semester = upload.getSemester() == null ? "Unknown Semester" : upload.getSemester();
-            String batch = upload.getBatch() == null ? "Unknown Batch" : upload.getBatch();
-
-            hierarchy
-                .computeIfAbsent(year, y -> new java.util.LinkedHashMap<>())
-                .computeIfAbsent(branch, b -> new java.util.LinkedHashMap<>())
-                .computeIfAbsent(division, d -> new java.util.LinkedHashMap<>())
-                .computeIfAbsent(semester, s -> new java.util.LinkedHashMap<>())
-                .merge(batch, 1L, Long::sum);
+        // Group by container key and count files
+        Map<String, Long> containerCounts = pending.stream()
+            .collect(Collectors.groupingBy(
+                upload -> String.join("|",
+                    safe(upload.getAcademicYear()),
+                    safe(upload.getBranch()),
+                    safe(upload.getDivision()),
+                    safe(upload.getSemester()),
+                    safe(upload.getBatch())
+                ),
+                Collectors.counting()
+            ));
+        
+        // Convert to flat list of ContainerInfo for easy card rendering
+        List<ContainerInfo> containers = new ArrayList<>();
+        for (Map.Entry<String, Long> entry : containerCounts.entrySet()) {
+            String[] parts = entry.getKey().split("\\|", -1);
+            if (parts.length == 5) {
+                containers.add(new ContainerInfo(
+                    parts[0].isEmpty() ? "Unknown Year" : parts[0],
+                    parts[1].isEmpty() ? "Unknown Branch" : parts[1],
+                    parts[2].isEmpty() ? "Unknown Division" : parts[2],
+                    parts[3].isEmpty() ? "Unknown Semester" : parts[3],
+                    parts[4].isEmpty() ? "Unknown Batch" : parts[4],
+                    entry.getValue()
+                ));
+            }
         }
+        
+        // Sort by year, branch, division, semester, batch
+        containers.sort((a, b) -> {
+            int c = a.getAcademicYear().compareTo(b.getAcademicYear());
+            if (c != 0) return c;
+            c = a.getBranch().compareTo(b.getBranch());
+            if (c != 0) return c;
+            c = a.getDivision().compareTo(b.getDivision());
+            if (c != 0) return c;
+            c = a.getSemester().compareTo(b.getSemester());
+            if (c != 0) return c;
+            return a.getBatch().compareTo(b.getBatch());
+        });
 
         long totalPending = pending.size();
 
-        model.addAttribute("hierarchy", hierarchy);
+        model.addAttribute("containers", containers);
         model.addAttribute("totalPending", totalPending);
         model.addAttribute("title", "Admin Dashboard - Print For You");
         
         return "admin/dashboard";
     }
+    
+    private String safe(String v) { return v == null ? "" : v; }
 
     /**
      * View container details using container key format: year|branch|division|semester|batch

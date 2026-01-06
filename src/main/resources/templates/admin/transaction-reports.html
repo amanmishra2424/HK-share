@@ -13,38 +13,38 @@
         <div class="container">
             <div class="row g-3 mb-4">
                 <div class="col-md-3">
-                    <div class="card text-bg-light">
+                    <div class="card text-bg-light border-success">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-uppercase text-muted">Total Topups</h6>
-                                    <h3 class="mb-0">₹ <span th:text="${totals['WALLET_TOPUP']}">0</span></h3>
+                                    <h6 class="text-uppercase text-muted">Credited (Topups)</h6>
+                                    <h3 class="mb-0 text-success">+ ₹ <span th:text="${totals['WALLET_TOPUP']}">0</span></h3>
                                 </div>
-                                <i class="fas fa-wallet fa-2x text-success"></i>
+                                <i class="fas fa-arrow-down fa-2x text-success"></i>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-bg-light">
+                    <div class="card text-bg-light border-danger">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-uppercase text-muted">Total Billing</h6>
-                                    <h3 class="mb-0">₹ <span th:text="${totals['PDF_BILLING']}">0</span></h3>
+                                    <h6 class="text-uppercase text-muted">Debited (Billing)</h6>
+                                    <h3 class="mb-0 text-danger">- ₹ <span th:text="${totals['PDF_BILLING_ABS']}">0</span></h3>
                                 </div>
-                                <i class="fas fa-file-invoice-dollar fa-2x text-primary"></i>
+                                <i class="fas fa-arrow-up fa-2x text-danger"></i>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-bg-light">
+                    <div class="card text-bg-light border-warning">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-uppercase text-muted">Total Refunds</h6>
-                                    <h3 class="mb-0">₹ <span th:text="${totals['REFUND']}">0</span></h3>
+                                    <h6 class="text-uppercase text-muted">Refunded</h6>
+                                    <h3 class="mb-0 text-warning">+ ₹ <span th:text="${totals['REFUND']}">0</span></h3>
                                 </div>
                                 <i class="fas fa-rotate-left fa-2x text-warning"></i>
                             </div>
@@ -52,14 +52,15 @@
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <div class="card text-bg-light">
+                    <div class="card text-bg-light border-info">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-uppercase text-muted">Net</h6>
-                                    <h3 class="mb-0">₹ <span th:text="${totals['NET']}">0</span></h3>
+                                    <h6 class="text-uppercase text-muted">Remaining Balance</h6>
+                                    <h3 class="mb-0 text-info">₹ <span th:text="${totals['NET']}">0</span></h3>
+                                    <small class="text-muted">Credited - Debited + Refunds</small>
                                 </div>
-                                <i class="fas fa-scale-balanced fa-2x text-info"></i>
+                                <i class="fas fa-wallet fa-2x text-info"></i>
                             </div>
                         </div>
                     </div>

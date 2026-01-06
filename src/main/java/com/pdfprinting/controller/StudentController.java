@@ -49,7 +49,8 @@ public class StudentController {
             return "redirect:/login";
         }
 
-        List<PdfUpload> uploads = pdfUploadService.getUserUploads(user);
+        // Only fetch PENDING uploads - processed ones are hidden to optimize DB queries
+        List<PdfUpload> uploads = pdfUploadService.getUserPendingUploads(user);
         BigDecimal walletBalance = walletService.getWalletBalance(user);
         List<Transaction> recentTransactions = walletService.getRecentTransactions(user, 10);
         boolean hasPendingRefund = refundService.listByUser(user).stream()

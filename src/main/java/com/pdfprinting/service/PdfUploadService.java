@@ -31,6 +31,14 @@ public class PdfUploadService {
     }
 
     /**
+     * Get only PENDING uploads for a user - optimized to not fetch already processed records
+     * This reduces DB load after admin merges PDFs
+     */
+    public List<PdfUpload> getUserPendingUploads(User user) {
+        return pdfUploadRepository.findByUserAndStatusOrderByUploadedAtDesc(user, PdfUpload.Status.PENDING);
+    }
+
+    /**
      * Get uploads from a specific container (academic_year, branch, division, semester, batch)
      * This is the primary method for container-based retrieval
      */

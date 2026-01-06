@@ -12,6 +12,9 @@ import com.pdfprinting.model.User;
 public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     List<PdfUpload> findByUserOrderByUploadedAtDesc(User user);
     
+    // Only PENDING uploads for user - optimized query to avoid fetching processed records
+    List<PdfUpload> findByUserAndStatusOrderByUploadedAtDesc(User user, PdfUpload.Status status);
+    
     // Container-based queries (academicYear, branch, division, semester, batch)
     List<PdfUpload> findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
         String academicYear, String branch, String division, String semester, String batch, PdfUpload.Status status);
