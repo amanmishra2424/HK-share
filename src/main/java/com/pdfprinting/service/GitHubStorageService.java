@@ -1,5 +1,9 @@
 package com.pdfprinting.service;
 
+import java.io.IOException;
+import java.util.Base64;
+import java.util.List;
+
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
@@ -8,10 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.util.Base64;
-import java.util.List;
 
 @Service
 public class GitHubStorageService {
@@ -93,6 +93,66 @@ public class GitHubStorageService {
         }
         
         throw new Exception("Failed to upload file to GitHub after " + MAX_RETRIES + " attempts: " + 
+                          (lastException != null ? lastException.getMessage() : "Unknown error"));
+    }
+    
+    /**
+     * Upload file from byte array (used for modified PDFs like duplex with added blank page)
+     */
+    public String uploadFileBytes(byte[] fileContent, String filename, String batch) throws Exception {
+        Exception lastException = null;
+        
+        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                logger.info("Attempting to upload file bytes {} to GitHub (attempt {}/{})", filename, attempt, MAX_RETRIES);
+                
+                GitHub github = getGitHub();
+                GHRepository repository = github.getRepository(repositoryName);
+                
+                // Create path: uploads/batch/filename
+                String path = "uploads/" + sanitizeBatchName(batch) + "/" + filename;
+                
+                // Convert bytes to base64
+                String base64Content = Base64.getEncoder().encodeToString(fileContent);
+                
+                // Check if file already exists
+                try {
+                    repository.getFileContent(path);
+                    // File exists, create unique name
+                    String baseName = filename.substring(0, filename.lastIndexOf('.'));
+                    String extension = filename.substring(filename.lastIndexOf('.'));
+                    path = "uploads/" + sanitizeBatchName(batch) + "/" + baseName + "_" + System.currentTimeMillis() + extension;
+                    logger.info("File exists, using unique path: {}", path);
+                } catch (Exception e) {
+                    // File doesn't exist, continue with original path
+                }
+                
+                // Upload to GitHub
+                repository.createContent()
+                    .content(base64Content)
+                    .path(path)
+                    .message("Upload PDF: " + filename + " from " + batch)
+                    .commit();
+                
+                logger.info("Successfully uploaded file bytes {} to GitHub at path {}", filename, path);
+                return path;
+                
+            } catch (Exception e) {
+                lastException = e;
+                logger.warn("Upload bytes attempt {}/{} failed for file {}: {}", attempt, MAX_RETRIES, filename, e.getMessage());
+                
+                if (attempt < MAX_RETRIES) {
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new Exception("Upload interrupted", ie);
+                    }
+                }
+            }
+        }
+        
+        throw new Exception("Failed to upload file bytes to GitHub after " + MAX_RETRIES + " attempts: " + 
                           (lastException != null ? lastException.getMessage() : "Unknown error"));
     }
 

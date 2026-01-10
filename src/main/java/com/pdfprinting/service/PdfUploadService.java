@@ -1,5 +1,6 @@
 package com.pdfprinting.service;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
@@ -9,11 +10,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.PdfUpload.PrintType;
 import com.pdfprinting.model.User;
 import com.pdfprinting.repository.PdfUploadRepository;
 
@@ -47,6 +52,24 @@ public class PdfUploadService {
         return pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
             academicYear, branch, division, semester, batch, PdfUpload.Status.PENDING);
     }
+    
+    /**
+     * Get uploads from a specific container filtered by print type
+     */
+    public List<PdfUpload> getContainerUploadsByPrintType(String academicYear, String branch, String division, 
+                                                           String semester, String batch, PrintType printType) {
+        return pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndPrintTypeAndStatusOrderByUploadedAtAsc(
+            academicYear, branch, division, semester, batch, printType, PdfUpload.Status.PENDING);
+    }
+    
+    /**
+     * Count uploads by container and print type
+     */
+    public long countContainerUploadsByPrintType(String academicYear, String branch, String division,
+                                                  String semester, String batch, PrintType printType) {
+        return pdfUploadRepository.countByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndPrintTypeAndStatus(
+            academicYear, branch, division, semester, batch, printType, PdfUpload.Status.PENDING);
+    }
 
     /**
      * Legacy method - get uploads by batch name only
@@ -58,10 +81,14 @@ public class PdfUploadService {
     }
 
     public int uploadPdfs(MultipartFile[] files, String batch, User user) throws Exception {
-        return uploadPdfs(files, batch, user, 1);
+        return uploadPdfs(files, batch, user, 1, PrintType.SINGLE_SIDE);
     }
 
     public int uploadPdfs(MultipartFile[] files, String batch, User user, int copyCount) throws Exception {
+        return uploadPdfs(files, batch, user, copyCount, PrintType.SINGLE_SIDE);
+    }
+    
+    public int uploadPdfs(MultipartFile[] files, String batch, User user, int copyCount, PrintType printType) throws Exception {
         // Validate user has all container fields set
         if (user.getAcademicYear() == null || user.getAcademicYear().isBlank()) {
             throw new Exception("Your academic year is not set. Please update your profile before uploading PDFs.");
@@ -105,17 +132,39 @@ public class PdfUploadService {
             // Count actual PDF pages using PDFBox
             int pageCount = countPdfPages(file);
             
-            // Upload to GitHub
-            String githubPath = gitHubStorageService.uploadFile(file, uniqueFilename, batch);
+            // Calculate billed pages (for duplex, rounds up odd to even)
+            int billedPageCount = pageCount;
+            if (printType == PrintType.DOUBLE_SIDE && pageCount % 2 != 0) {
+                billedPageCount = pageCount + 1;
+            }
             
-            // Calculate billing info using actual page count
-            // Pricing: ₹2 per page per copy
-            BigDecimal totalCost = BigDecimal.valueOf(2).multiply(
-                BigDecimal.valueOf(pageCount).multiply(BigDecimal.valueOf(copyCount))
+            // Process file - add blank page for duplex if needed
+            byte[] pdfBytes;
+            long finalFileSize;
+            if (printType == PrintType.DOUBLE_SIDE && pageCount % 2 != 0) {
+                // Add blank page to end of PDF for proper duplex alignment
+                pdfBytes = addBlankPageToPdf(file);
+                finalFileSize = pdfBytes.length;
+            } else {
+                pdfBytes = file.getBytes();
+                finalFileSize = file.getSize();
+            }
+            
+            // Upload to GitHub (using byte array if modified)
+            String githubPath;
+            if (printType == PrintType.DOUBLE_SIDE && pageCount % 2 != 0) {
+                githubPath = gitHubStorageService.uploadFileBytes(pdfBytes, uniqueFilename, batch);
+            } else {
+                githubPath = gitHubStorageService.uploadFile(file, uniqueFilename, batch);
+            }
+            
+            // Calculate billing info using billed page count and print type pricing
+            BigDecimal pricePerPage = BigDecimal.valueOf(printType.getPricePerPage());
+            BigDecimal totalCost = pricePerPage.multiply(
+                BigDecimal.valueOf(billedPageCount).multiply(BigDecimal.valueOf(copyCount))
             );
             
-            // Save to database with copy count, billing info and department info
-            // Upload goes directly into the container defined by (academicYear, branch, division, semester, batch)
+            // Save to database with copy count, billing info, print type and department info
             PdfUpload upload = new PdfUpload(
                 uniqueFilename,
                 originalFilename,
@@ -125,11 +174,13 @@ public class PdfUploadService {
                 user.getAcademicYear(),
                 user.getSemester(),
                 batch,
-                file.getSize(),
+                finalFileSize,
                 user,
                 copyCount,
                 pageCount,
-                totalCost
+                billedPageCount,
+                totalCost,
+                printType
             );
             
             pdfUploadRepository.save(upload);
@@ -137,6 +188,28 @@ public class PdfUploadService {
         }
         
         return uploadedCount;
+    }
+    
+    /**
+     * Add a blank page to the end of a PDF for proper duplex printing alignment
+     */
+    private byte[] addBlankPageToPdf(MultipartFile file) throws Exception {
+        try (PDDocument document = PDDocument.load(file.getInputStream());
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            
+            // Get the last page's size to match the blank page
+            PDPage lastPage = document.getPage(document.getNumberOfPages() - 1);
+            PDRectangle pageSize = lastPage.getMediaBox();
+            
+            // Add a blank page with the same size
+            PDPage blankPage = new PDPage(pageSize);
+            document.addPage(blankPage);
+            
+            document.save(outputStream);
+            return outputStream.toByteArray();
+        } catch (IOException e) {
+            throw new Exception("Failed to add blank page to PDF: " + e.getMessage());
+        }
     }
 
     public void deletePdf(Long id, User user) throws Exception {
@@ -164,10 +237,25 @@ public class PdfUploadService {
      * Mark all uploads in the container as PROCESSED
      * Container is defined by (academicYear, branch, division, semester, batch)
      */
+    @Transactional
     public void clearContainerUploads(String academicYear, String branch, String division, 
                                        String semester, String batch) {
         List<PdfUpload> uploads = pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
             academicYear, branch, division, semester, batch, PdfUpload.Status.PENDING);
+        for (PdfUpload upload : uploads) {
+            upload.setStatus(PdfUpload.Status.PROCESSED);
+            pdfUploadRepository.save(upload);
+        }
+    }
+    
+    /**
+     * Mark uploads in the container with specific print type as PROCESSED
+     */
+    @Transactional
+    public void clearContainerUploadsByPrintType(String academicYear, String branch, String division, 
+                                                  String semester, String batch, PrintType printType) {
+        List<PdfUpload> uploads = pdfUploadRepository.findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndPrintTypeAndStatusOrderByUploadedAtAsc(
+            academicYear, branch, division, semester, batch, printType, PdfUpload.Status.PENDING);
         for (PdfUpload upload : uploads) {
             upload.setStatus(PdfUpload.Status.PROCESSED);
             pdfUploadRepository.save(upload);
@@ -271,6 +359,38 @@ public class PdfUploadService {
             }
         }
         return totalPages;
+    }
+    
+    /**
+     * Calculate total cost for files based on print type
+     */
+    public BigDecimal calculateTotalCost(MultipartFile[] files, int copyCount, PrintType printType) throws Exception {
+        int totalPages = calculateTotalPages(files);
+        int billedPages = totalPages;
+        
+        // For duplex, each file's odd pages are rounded up individually
+        // But for pre-calculation, we approximate with total pages
+        if (printType == PrintType.DOUBLE_SIDE) {
+            // For accurate pre-calculation, count each file individually
+            billedPages = 0;
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    String contentType = file.getContentType();
+                    if (contentType != null && contentType.equals("application/pdf")) {
+                        int filePages = countPdfPages(file);
+                        // Round up odd pages to even for each file
+                        if (filePages % 2 != 0) {
+                            filePages += 1;
+                        }
+                        billedPages += filePages;
+                    }
+                }
+            }
+        }
+        
+        BigDecimal pricePerPage = BigDecimal.valueOf(printType.getPricePerPage());
+        return pricePerPage.multiply(BigDecimal.valueOf(billedPages))
+                          .multiply(BigDecimal.valueOf(copyCount));
     }
     
     /**

@@ -19,6 +19,16 @@ public interface PdfUploadRepository extends JpaRepository<PdfUpload, Long> {
     List<PdfUpload> findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndStatusOrderByUploadedAtAsc(
         String academicYear, String branch, String division, String semester, String batch, PdfUpload.Status status);
     
+    // Container + PrintType based queries
+    List<PdfUpload> findByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndPrintTypeAndStatusOrderByUploadedAtAsc(
+        String academicYear, String branch, String division, String semester, String batch, 
+        PdfUpload.PrintType printType, PdfUpload.Status status);
+    
+    // Count by container and print type
+    long countByAcademicYearAndBranchAndDivisionAndSemesterAndBatchAndPrintTypeAndStatus(
+        String academicYear, String branch, String division, String semester, String batch,
+        PdfUpload.PrintType printType, PdfUpload.Status status);
+    
     // Find by branch, division, and batch (legacy support)
     List<PdfUpload> findByBranchAndDivisionAndBatchAndStatusOrderByUploadedAtAsc(
         String branch, String division, String batch, PdfUpload.Status status);

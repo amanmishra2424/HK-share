@@ -1,17 +1,19 @@
 package com.pdfprinting.service;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.pdfprinting.model.PdfUpload.PrintType;
 import com.pdfprinting.model.Transaction;
 import com.pdfprinting.model.User;
 import com.pdfprinting.model.Wallet;
 import com.pdfprinting.repository.TransactionRepository;
 import com.pdfprinting.repository.WalletRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class WalletService {
@@ -22,8 +24,10 @@ public class WalletService {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    // Price per page
-    private static final BigDecimal PRICE_PER_PAGE = new BigDecimal("2.00");
+    // Price per page for different print types
+    private static final BigDecimal PRICE_SINGLE_SIDE = new BigDecimal("2.00");   // ₹2 per page (B&W single side)
+    private static final BigDecimal PRICE_DOUBLE_SIDE = new BigDecimal("1.00");   // ₹1 per page (duplex)
+    private static final BigDecimal PRICE_COLOUR = new BigDecimal("7.00");        // ₹7 per page (colour single side)
 
     public Wallet getOrCreateWallet(User user) {
         Optional<Wallet> walletOpt = walletRepository.findByUser(user);
@@ -143,8 +147,51 @@ public class WalletService {
     }
 
     public BigDecimal calculateCost(int pageCount, int copyCount) {
-        return PRICE_PER_PAGE.multiply(new BigDecimal(pageCount))
+        // Legacy method - uses single side pricing
+        return PRICE_SINGLE_SIDE.multiply(new BigDecimal(pageCount))
                              .multiply(new BigDecimal(copyCount));
+    }
+    
+    /**
+     * Calculate cost based on print type
+     * - SINGLE_SIDE: ₹2 per page
+     * - DOUBLE_SIDE: ₹1 per page (odd pages rounded up to even)
+     * - COLOUR: ₹7 per page
+     */
+    public BigDecimal calculateCost(int pageCount, int copyCount, PrintType printType) {
+        BigDecimal pricePerPage;
+        int billedPages = pageCount;
+        
+        switch (printType) {
+            case DOUBLE_SIDE:
+                // For duplex: if odd pages, add 1 blank page to make even
+                if (pageCount % 2 != 0) {
+                    billedPages = pageCount + 1;
+                }
+                pricePerPage = PRICE_DOUBLE_SIDE;
+                break;
+            case COLOUR:
+                pricePerPage = PRICE_COLOUR;
+                break;
+            case SINGLE_SIDE:
+            default:
+                pricePerPage = PRICE_SINGLE_SIDE;
+                break;
+        }
+        
+        return pricePerPage.multiply(new BigDecimal(billedPages))
+                          .multiply(new BigDecimal(copyCount));
+    }
+    
+    /**
+     * Calculate billed page count for a print type
+     * For duplex, rounds odd pages up to even
+     */
+    public int calculateBilledPages(int pageCount, PrintType printType) {
+        if (printType == PrintType.DOUBLE_SIDE && pageCount % 2 != 0) {
+            return pageCount + 1;
+        }
+        return pageCount;
     }
 
     public boolean hasAmountRequired(User user, BigDecimal amount) {

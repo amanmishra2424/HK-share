@@ -672,14 +672,37 @@
             <p class="text-muted mb-3">Choose multiple PDF files to upload (Max 10MB each)</p>
             <input type="file" class="form-control" name="files" multiple accept=".pdf" required>
           </div>
-
-          <div class="mb-3">
-            <label for="copyCount" class="form-label"><i class="fas fa-copy me-1"></i>Number of Copies</label>
-            <input type="number" class="form-control" name="copyCount" id="copyCount" value="1" min="1" max="50" required>
-            <div class="form-text text-info">
-              <i class="fas fa-info-circle me-1"></i>
-              <strong>Pricing:</strong> ₹2 per page per copy.
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="printType" class="form-label"><i class="fas fa-print me-1"></i>Print Type</label>
+              <select class="form-select" name="printType" id="printType" required onchange="updatePricing()">
+                <option value="SINGLE_SIDE" selected>Single Side (B&W) - ₹2/page</option>
+                <option value="DOUBLE_SIDE">Double Side (Duplex) - ₹1/page</option>
+                <option value="COLOUR">Colour (Single Side) - ₹7/page</option>
+              </select>
+              <div id="printTypeInfo" class="form-text text-info mt-2">
+                <i class="fas fa-info-circle me-1"></i>
+                <span id="printTypeDesc">Standard black & white single-sided printing.</span>
+              </div>
             </div>
+            <div class="col-md-6 mb-3">
+              <label for="copyCount" class="form-label"><i class="fas fa-copy me-1"></i>Number of Copies</label>
+              <input type="number" class="form-control" name="copyCount" id="copyCount" value="1" min="1" max="50" required>
+            </div>
+          </div>
+          
+          <div class="alert alert-light border mb-3" id="pricingPreview">
+            <h6 class="mb-2"><i class="fas fa-calculator me-2 text-primary"></i>Pricing Info</h6>
+            <div class="d-flex flex-wrap gap-3">
+              <div><i class="fas fa-file-alt me-1 text-secondary"></i><strong>Single Side (B&W):</strong> ₹2/page</div>
+              <div><i class="fas fa-clone me-1 text-secondary"></i><strong>Double Side:</strong> ₹1/page</div>
+              <div><i class="fas fa-palette me-1 text-secondary"></i><strong>Colour:</strong> ₹7/page</div>
+            </div>
+            <small class="text-muted mt-2 d-block">
+              <i class="fas fa-lightbulb me-1"></i>
+              <strong>Tip:</strong> Double Side adds a blank page if your PDF has odd pages for proper duplex alignment.
+            </small>
           </div>
 
           <input type="hidden" name="batch" th:value="${user.batch}" />
@@ -702,7 +725,7 @@
         <div th:if="${!#lists.isEmpty(uploads)}">
           <div class="file-item" th:each="upload : ${uploads}">
             <div class="row align-items-center">
-              <div class="col-md-6">
+              <div class="col-md-5">
                 <h6 class="mb-1">
                   <i class="fas fa-file-pdf text-danger me-2"></i>
                   <span th:text="${upload.originalFileName}">document.pdf</span>
@@ -711,11 +734,16 @@
                   <i class="fas fa-box me-1"></i>
                   <span th:text="${upload.academicYear} + ' / ' + ${upload.branch} + ' / ' + ${upload.division} + ' / Sem ' + ${upload.semester} + ' / ' + ${upload.batch}">Container Info</span>
                 </small>
+                <div class="mt-1">
+                  <span class="badge" 
+                    th:classappend="${upload.printType.name() == 'SINGLE_SIDE'} ? 'bg-secondary' : (${upload.printType.name() == 'DOUBLE_SIDE'} ? 'bg-info' : 'bg-danger')"
+                    th:text="${upload.printType.displayName}">Single Side</span>
+                </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <small class="text-muted d-block"><i class="fas fa-clock me-1"></i><span th:text="${#temporals.format(upload.uploadedAt, 'MMM dd, yyyy HH:mm')}">Dec 15, 2024</span></small>
                 <small class="text-muted d-block"><i class="fas fa-hdd me-1"></i><span th:text="${#numbers.formatDecimal(upload.fileSize / 1024.0 / 1024.0, 1, 2)} + ' MB'">1.5 MB</span></small>
-                <small class="text-muted d-block"><i class="fas fa-file-alt me-1"></i><span th:text="${upload.pageCount} + ' pages'">1 pages</span></small>
+                <small class="text-muted d-block"><i class="fas fa-file-alt me-1"></i><span th:text="${upload.pageCount} + ' pages'">1 pages</span><span th:if="${upload.billedPageCount != upload.pageCount}" class="text-info"> (billed: <span th:text="${upload.billedPageCount}">2</span>)</span></small>
                 <small class="text-muted d-block"><i class="fas fa-copy me-1"></i><span th:text="${upload.copyCount} + ' copies'">1 copies</span></small>
                 <small class="text-success d-block"><i class="fas fa-rupee-sign me-1"></i><strong>₹<span th:text="${upload.totalCost}">2.00</span></strong></small>
               </div>
@@ -794,6 +822,24 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Print type description update
+    function updatePricing() {
+      const printType = document.getElementById('printType').value;
+      const descSpan = document.getElementById('printTypeDesc');
+      
+      switch(printType) {
+        case 'SINGLE_SIDE':
+          descSpan.textContent = 'Standard black & white single-sided printing. ₹2 per page.';
+          break;
+        case 'DOUBLE_SIDE':
+          descSpan.textContent = 'Double-sided (duplex) printing. ₹1 per page. A blank page is auto-added if your PDF has odd pages.';
+          break;
+        case 'COLOUR':
+          descSpan.textContent = 'Full colour single-sided printing. ₹7 per page. Duplex not available for colour.';
+          break;
+      }
+    }
+    
     // Refund preview calculation
     const refundAmountInput = document.getElementById('refundAmount');
     const refundPreview = document.getElementById('refundPreview');

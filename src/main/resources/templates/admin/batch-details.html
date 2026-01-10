@@ -100,13 +100,53 @@
 
         <!-- Action Bar -->
         <div class="row mb-4">
-            <div class="col-md-8">
+            <div class="col-md-6">
                 <h3>
                     <i class="fas fa-file-pdf me-2"></i>Uploaded Files (Ordered by Upload Time)
                 </h3>
             </div>
-            <div class="col-md-4 text-end" th:if="${!#lists.isEmpty(uploads)}">
-                <form method="post" th:action="@{/admin/merge}" 
+            <div class="col-md-6 text-end" th:if="${!#lists.isEmpty(uploads)}">
+                <!-- Merge by Print Type Buttons -->
+                <div class="btn-group mb-2 me-2" role="group">
+                    <form th:if="${singleSideCount > 0}" method="post" th:action="@{/admin/merge-by-type}" class="d-inline me-1"
+                          onsubmit="return confirm('Merge all Single Side (B&W) PDFs?')">
+                        <input type="hidden" name="academicYear" th:value="${academicYear}" />
+                        <input type="hidden" name="branch" th:value="${branch}" />
+                        <input type="hidden" name="division" th:value="${division}" />
+                        <input type="hidden" name="semester" th:value="${semester}" />
+                        <input type="hidden" name="batch" th:value="${batch}" />
+                        <input type="hidden" name="printType" value="SINGLE_SIDE" />
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            <i class="fas fa-file me-1"></i>B&W (<span th:text="${singleSideCount}">0</span>)
+                        </button>
+                    </form>
+                    <form th:if="${doubleSideCount > 0}" method="post" th:action="@{/admin/merge-by-type}" class="d-inline me-1"
+                          onsubmit="return confirm('Merge all Double Side (Duplex) PDFs?')">
+                        <input type="hidden" name="academicYear" th:value="${academicYear}" />
+                        <input type="hidden" name="branch" th:value="${branch}" />
+                        <input type="hidden" name="division" th:value="${division}" />
+                        <input type="hidden" name="semester" th:value="${semester}" />
+                        <input type="hidden" name="batch" th:value="${batch}" />
+                        <input type="hidden" name="printType" value="DOUBLE_SIDE" />
+                        <button type="submit" class="btn btn-info btn-sm">
+                            <i class="fas fa-copy me-1"></i>Duplex (<span th:text="${doubleSideCount}">0</span>)
+                        </button>
+                    </form>
+                    <form th:if="${colourCount > 0}" method="post" th:action="@{/admin/merge-by-type}" class="d-inline me-1"
+                          onsubmit="return confirm('Merge all Colour PDFs?')">
+                        <input type="hidden" name="academicYear" th:value="${academicYear}" />
+                        <input type="hidden" name="branch" th:value="${branch}" />
+                        <input type="hidden" name="division" th:value="${division}" />
+                        <input type="hidden" name="semester" th:value="${semester}" />
+                        <input type="hidden" name="batch" th:value="${batch}" />
+                        <input type="hidden" name="printType" value="COLOUR" />
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fas fa-palette me-1"></i>Colour (<span th:text="${colourCount}">0</span>)
+                        </button>
+                    </form>
+                </div>
+                <!-- Legacy Merge All Button -->
+                <form method="post" th:action="@{/admin/merge}" class="d-inline"
                       onsubmit="return confirm('Are you sure you want to merge all PDFs? This will mark all uploads in this container as processed.')">
                     <input type="hidden" name="academicYear" th:value="${academicYear}" />
                     <input type="hidden" name="branch" th:value="${branch}" />
@@ -115,7 +155,7 @@
                     <input type="hidden" name="batch" th:value="${batch}" />
                     <button type="submit" class="btn btn-merge">
                         <i class="fas fa-compress-arrows-alt me-2"></i>
-                        Merge All PDFs (<span th:text="${#lists.size(uploads)}">0</span>)
+                        Merge All (<span th:text="${#lists.size(uploads)}">0</span>)
                     </button>
                 </form>
             </div>
@@ -149,6 +189,11 @@
                                     <span th:text="${upload.user.name}">Student Name</span>
                                     (<span th:text="${upload.user.rollNumber}">CS001</span>)
                                 </small>
+                                <div class="mt-1">
+                                    <span class="badge" 
+                                        th:classappend="${upload.printType.name() == 'SINGLE_SIDE'} ? 'bg-secondary' : (${upload.printType.name() == 'DOUBLE_SIDE'} ? 'bg-info' : 'bg-danger')"
+                                        th:text="${upload.printType.displayName}">Single Side</span>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <small class="text-muted d-block">
@@ -158,6 +203,11 @@
                                 <small class="text-muted d-block">
                                     <i class="fas fa-file-alt me-1"></i>
                                     <span th:text="${upload.pageCount}">1</span> pages
+                                    <span th:if="${upload.billedPageCount != upload.pageCount}" class="text-info">(billed: <span th:text="${upload.billedPageCount}">2</span>)</span>
+                                </small>
+                                <small class="text-success d-block">
+                                    <i class="fas fa-rupee-sign me-1"></i>
+                                    ₹<span th:text="${upload.totalCost}">0</span>
                                 </small>
                             </div>
                             <div class="col-md-2">
@@ -206,6 +256,25 @@
                                 <div class="col-md-4 text-center">
                                     <h4 class="text-warning">READY</h4>
                                     <small class="text-muted">Status</small>
+                                </div>
+                            </div>
+                            <!-- Print Type Breakdown -->
+                            <hr class="my-3">
+                            <div class="row">
+                                <div class="col-12 text-center mb-2">
+                                    <small class="text-muted fw-bold">Print Type Breakdown</small>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <span class="badge bg-secondary fs-6" th:text="${singleSideCount != null ? singleSideCount : 0}">0</span>
+                                    <br><small class="text-muted">Single Side (B&W)</small>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <span class="badge bg-info fs-6" th:text="${doubleSideCount != null ? doubleSideCount : 0}">0</span>
+                                    <br><small class="text-muted">Double Side (Duplex)</small>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <span class="badge bg-danger fs-6" th:text="${colourCount != null ? colourCount : 0}">0</span>
+                                    <br><small class="text-muted">Colour (Single Side)</small>
                                 </div>
                             </div>
                         </div>

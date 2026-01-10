@@ -54,6 +54,9 @@ public class PdfUpload {
 
     @Column(nullable = false)
     private int pageCount = 1; // Number of pages in PDF
+    
+    @Column(nullable = false)
+    private int billedPageCount = 1; // Pages billed (may differ from pageCount for duplex with odd pages)
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalCost = BigDecimal.ZERO; // Total cost for this upload
@@ -67,6 +70,10 @@ public class PdfUpload {
 
     @Enumerated(EnumType.STRING)
     private Status status = Status.PENDING;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PrintType printType = PrintType.SINGLE_SIDE;
 
     // Constructors
     public PdfUpload() {}
@@ -84,6 +91,7 @@ public class PdfUpload {
         this.fileSize = fileSize;
         this.user = user;
         this.copyCount = 1; // Default copy count
+        this.printType = PrintType.SINGLE_SIDE; // Default print type
     }
 
     public PdfUpload(String fileName, String originalFileName, String githubPath, 
@@ -101,7 +109,29 @@ public class PdfUpload {
         this.user = user;
         this.copyCount = copyCount;
         this.pageCount = pageCount;
+        this.billedPageCount = pageCount;
         this.totalCost = totalCost;
+        this.printType = PrintType.SINGLE_SIDE; // Default print type
+    }
+    
+    public PdfUpload(String fileName, String originalFileName, String githubPath, 
+                     String branch, String division, String academicYear, String semester, String batch, long fileSize, User user, 
+                     int copyCount, int pageCount, int billedPageCount, BigDecimal totalCost, PrintType printType) {
+        this.fileName = fileName;
+        this.originalFileName = originalFileName;
+        this.githubPath = githubPath;
+        this.branch = branch;
+        this.division = division;
+        this.academicYear = academicYear;
+        this.semester = semester;
+        this.batch = batch;
+        this.fileSize = fileSize;
+        this.user = user;
+        this.copyCount = copyCount;
+        this.pageCount = pageCount;
+        this.billedPageCount = billedPageCount;
+        this.totalCost = totalCost;
+        this.printType = printType;
     }
 
     public String getBranch() { return branch; }
@@ -152,8 +182,34 @@ public class PdfUpload {
 
     public BigDecimal getTotalCost() { return totalCost; }
     public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
+    
+    public int getBilledPageCount() { return billedPageCount; }
+    public void setBilledPageCount(int billedPageCount) { this.billedPageCount = billedPageCount; }
+    
+    public PrintType getPrintType() { return printType; }
+    public void setPrintType(PrintType printType) { this.printType = printType; }
 
     public enum Status {
         PENDING, PROCESSED, DELETED
+    }
+    
+    /**
+     * Print type enum for different printing modes with associated pricing
+     */
+    public enum PrintType {
+        SINGLE_SIDE("Single Side (B&W)", 2),      // ₹2 per page
+        DOUBLE_SIDE("Double Side (Duplex)", 1),    // ₹1 per page (even pages only)
+        COLOUR("Colour (Single Side)", 7);         // ₹7 per page
+        
+        private final String displayName;
+        private final int pricePerPage;
+        
+        PrintType(String displayName, int pricePerPage) {
+            this.displayName = displayName;
+            this.pricePerPage = pricePerPage;
+        }
+        
+        public String getDisplayName() { return displayName; }
+        public int getPricePerPage() { return pricePerPage; }
     }
 }

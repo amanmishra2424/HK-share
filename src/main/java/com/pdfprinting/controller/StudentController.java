@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.pdfprinting.model.PdfUpload;
+import com.pdfprinting.model.PdfUpload.PrintType;
 import com.pdfprinting.model.RefundRequest;
 import com.pdfprinting.model.Transaction;
 import com.pdfprinting.model.User;
@@ -90,6 +91,7 @@ public class StudentController {
     @PostMapping("/upload")
     public String uploadPdfs(@RequestParam("files") MultipartFile[] files,
                             @RequestParam(value = "copyCount", defaultValue = "1") int copyCount,
+                            @RequestParam(value = "printType", defaultValue = "SINGLE_SIDE") String printTypeStr,
                             Authentication authentication,
                             RedirectAttributes redirectAttributes) {
         
@@ -103,6 +105,15 @@ public class StudentController {
 
         if (copyCount < 1 || copyCount > 50) {
             redirectAttributes.addFlashAttribute("error", "Copy count must be between 1 and 50");
+            return "redirect:/student/dashboard";
+        }
+        
+        // Parse print type
+        PrintType printType;
+        try {
+            printType = PrintType.valueOf(printTypeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("error", "Invalid print type selected");
             return "redirect:/student/dashboard";
         }
 
@@ -119,9 +130,8 @@ public class StudentController {
         }
 
         try {
-            // Calculate total cost first
-            int totalPages = pdfUploadService.calculateTotalPages(files);
-            BigDecimal totalCost = walletService.calculateCost(totalPages, copyCount);
+            // Calculate total cost based on print type
+            BigDecimal totalCost = pdfUploadService.calculateTotalCost(files, copyCount, printType);
             
             // Check wallet balance
             if (!walletService.hasAmountRequired(user, totalCost)) {
@@ -132,16 +142,15 @@ public class StudentController {
             }
             
             // Process upload and deduct amount
-            // Upload goes directly into the container defined by user's profile:
-            // (academicYear, branch, division, semester, batch)
             String batch = user.getBatch();
-            int uploadedCount = pdfUploadService.uploadPdfs(files, batch, user, copyCount);
-            walletService.deductMoney(user, totalCost, "PDF printing cost for " + uploadedCount + " files");
+            int uploadedCount = pdfUploadService.uploadPdfs(files, batch, user, copyCount, printType);
+            walletService.deductMoney(user, totalCost, printType.getDisplayName() + " printing cost for " + uploadedCount + " files");
             
             String containerInfo = String.format("Container: %s / %s / %s / Sem %s / %s", 
                 user.getAcademicYear(), user.getBranch(), user.getDivision(), user.getSemester(), batch);
             redirectAttributes.addFlashAttribute("message", 
-                uploadedCount + " PDF(s) uploaded successfully with " + copyCount + " copies each! ₹" + totalCost + " deducted. " + containerInfo);
+                uploadedCount + " PDF(s) uploaded successfully as " + printType.getDisplayName() + " with " + 
+                copyCount + " copies each! ₹" + totalCost + " deducted. " + containerInfo);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", 
                 "Upload failed: " + e.getMessage());
