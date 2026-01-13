@@ -7,9 +7,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-<div th:replace="layout :: layout(~{::title}, ~{::section})">
+<div th:replace="layout :: layout(~{::title}, ~{::content})">
     <h2 th:fragment="title">Admin - Transaction Reports</h2>
-    <section th:fragment="section">
+    <section th:fragment="content">
         <div class="container">
             <div class="row g-3 mb-4">
                 <div class="col-md-3">

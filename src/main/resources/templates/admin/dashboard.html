@@ -549,7 +549,7 @@
       </div>
       
       <!-- Failed PDFs Section - shown when some PDFs couldn't be merged -->
-      <div th:if="${hasFailures && failedPdfs != null}" class="alert alert-warning mb-4">
+      <div th:if="${hasFailures != null and hasFailures and failedPdfs != null}" class="alert alert-warning mb-4">
         <h5 class="alert-heading mb-3">
           <i class="fas fa-exclamation-triangle me-2"></i>
           Some PDFs Could Not Be Merged
